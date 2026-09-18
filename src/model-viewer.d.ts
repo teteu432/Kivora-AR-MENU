@@ -10,8 +10,20 @@ export type ModelDimensions = {
   z: number
 }
 
+export type ModelViewerArStatus =
+  | 'not-presenting'
+  | 'session-started'
+  | 'object-placed'
+  | 'failed'
+
+export type ModelViewerArTracking =
+  | 'tracking'
+  | 'not-tracking'
+
 export type ModelViewerElement = HTMLElement & {
   loaded: boolean
+  canActivateAR: boolean
+  activateAR: () => Promise<void>
   getDimensions: () => ModelDimensions
 }
 

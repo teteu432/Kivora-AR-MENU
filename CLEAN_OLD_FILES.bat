@@ -1,16 +1,12 @@
 @echo off
-echo Limpando arquivos antigos do Kivora AR...
-
-if exist src\components\ARSurfacePlacement.tsx del /q src\components\ARSurfacePlacement.tsx
-if exist src\components\BurgerPreview.tsx del /q src\components\BurgerPreview.tsx
-if exist src\components\ReliableARPlacement.tsx del /q src\components\ReliableARPlacement.tsx
-if exist src\components\ARDiagnostics.tsx del /q src\components\ARDiagnostics.tsx
-if exist src\lib\burgerModel.ts del /q src\lib\burgerModel.ts
-if exist src\config.ts del /q src\config.ts
-
+echo Esta versao deve ser usada em uma pasta nova.
 echo.
-echo Arquivos antigos removidos.
-echo Agora execute:
-echo npm install
-echo npm run build
+echo Se voce copiou por cima da pasta antiga, os arquivos WebXR customizados
+echo antigos podem continuar no disco.
+echo.
+echo Recomendacao:
+echo 1. crie uma pasta nova
+echo 2. extraia o ZIP nela
+echo 3. npm install
+echo 4. npm run build
 pause

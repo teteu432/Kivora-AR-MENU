@@ -1,40 +1,35 @@
-# Kivora AR Menu v0.7.1
+# Kivora AR Menu v0.8.0 — WebXR no navegador
 
-Esta versão usa apenas:
+Esta versão foi construída para reproduzir o COMPORTAMENTO da câmera mostrado
+no vídeo de referência:
 
-- React
-- TypeScript
-- Vite
-- @google/model-viewer
-- Google Scene Viewer / ARCore no Android
+1. usuário toca em `Ver na minha mesa`;
+2. aparece uma orientação rápida;
+3. usuário toca em `Abrir câmera`;
+4. WebXR abre em tela cheia dentro do navegador;
+5. o navegador mostra a câmera real;
+6. o próprio `<model-viewer>` cuida de Hit Test, placement e tracking;
+7. o botão padrão de saída do WebXR fica no canto superior.
 
-A implementação WebXR customizada foi removida.
+Não usamos:
+- Scene Viewer;
+- Hit Test escrito manualmente;
+- retículo verde customizado;
+- Three.js customizado para AR.
 
-## IMPORTANTE
+## AR mode
 
-Não copie este ZIP por cima da pasta antiga.
+O projeto usa somente:
 
-O caminho mais seguro é:
+```html
+ar-modes="webxr"
+```
 
-1. renomear a pasta antiga;
-2. extrair este ZIP em uma pasta NOVA e vazia;
-3. executar npm install;
-4. executar npm run build.
+Assim ele não troca para o aplicativo Google Scene Viewer.
 
-Se quiser continuar usando a pasta antiga, execute também:
+## Instalação
 
-`CLEAN_OLD_FILES.bat`
-
-Ele remove os arquivos WebXR obsoletos.
-
-## Proteção extra
-
-O `tsconfig.app.json` desta versão usa `files` em vez de incluir todo `src`.
-
-Isso significa que arquivos antigos esquecidos na pasta não serão compilados
-se não fizerem parte da aplicação atual.
-
-## Comandos
+Extraia em uma PASTA NOVA.
 
 ```bash
 npm install
@@ -42,6 +37,13 @@ npm run typecheck
 npm run build
 ```
 
-A interface deve mostrar:
+A versão correta mostra:
 
-`PROTÓTIPO AR • v0.7.1`
+`PROTÓTIPO AR • v0.8.0`
+
+## Modelo 3D
+
+https://cdn.jsdelivr.net/gh/mindset-code/burger-house-3d@c2bddc597efe4870326c843a6e056727752fc261/public/hamburger__food_big-hamburger.glb
+
+Para uso comercial, substitua por um modelo cuja licença individual esteja
+documentada ou por um GLB próprio do restaurante.

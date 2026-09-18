@@ -1,5 +1,5 @@
 import './App.css'
-import BurgerARViewer from './components/BurgerARViewer'
+import BurgerWebXR from './components/BurgerWebXR'
 
 function App() {
   return (
@@ -17,23 +17,23 @@ function App() {
 
       <section className="product">
         <div className="viewer-card">
-          <span className="viewer-badge">VISUALIZAÇÃO 3D + AR</span>
+          <span className="viewer-badge">
+            VISUALIZAÇÃO 3D
+          </span>
 
-          <BurgerARViewer />
-
-          <p className="viewer-tip">
-            Arraste para girar • No celular, use “Ver na minha mesa”
-          </p>
+          <BurgerWebXR />
         </div>
 
         <div className="product-info">
-          <span className="eyebrow">PROTÓTIPO AR • v0.7.1</span>
+          <span className="eyebrow">
+            PROTÓTIPO AR • v0.8.0
+          </span>
 
           <h1>X-Burguer Especial</h1>
 
           <p className="description">
-            Visualize o hambúrguer em 3D e use o AR nativo do aparelho para
-            posicioná-lo sobre uma superfície real.
+            Visualize o hambúrguer em 3D e abra a realidade aumentada
+            diretamente no navegador.
           </p>
 
           <div className="price">
@@ -41,15 +41,20 @@ function App() {
             <strong>29,90</strong>
           </div>
 
-          <div className="native-info">
-            <span className="native-info-icon">◎</span>
+          <div className="webxr-info">
+            <span className="webxr-info-icon">
+              ◎
+            </span>
 
             <div>
-              <strong>Google Scene Viewer / ARCore</strong>
+              <strong>
+                AR direto no navegador
+              </strong>
 
               <p>
-                No Android compatível, o sistema nativo cuida da detecção,
-                posicionamento e rastreamento do produto.
+                Não abrimos outro aplicativo. A experiência usa WebXR em tela
+                cheia, e o próprio model-viewer cuida do posicionamento e do
+                rastreamento da superfície.
               </p>
             </div>
           </div>

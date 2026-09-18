@@ -20,7 +20,6 @@ button {
   padding: 0 7%;
   border-bottom: 1px solid rgba(255, 255, 255, 0.07);
   background: rgba(8, 11, 18, 0.88);
-  backdrop-filter: blur(14px);
 }
 
 .brand {
@@ -68,7 +67,7 @@ button {
 .viewer-card {
   position: relative;
   height: 570px;
-  overflow: hidden;
+  overflow: visible;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 28px;
   background:
@@ -79,12 +78,33 @@ button {
 .viewer-shell {
   position: absolute;
   inset: 0;
+  overflow: hidden;
+  border-radius: 28px;
 }
 
 .viewer-shell model-viewer {
   display: block;
   width: 100%;
   height: 100%;
+  --ar-button-display: none;
+}
+
+.viewer-shell model-viewer::part(default-exit-webxr-ar-button) {
+  top: max(env(safe-area-inset-top), 12px);
+  right: 12px;
+  width: 42px;
+  height: 42px;
+}
+
+.viewer-loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #9aa5b6;
+  font-size: 13px;
+  background: rgba(12, 16, 23, 0.6);
+  pointer-events: none;
 }
 
 .viewer-badge {
@@ -102,24 +122,21 @@ button {
   pointer-events: none;
 }
 
-.viewer-tip {
+.ar-controls {
   position: absolute;
-  z-index: 3;
-  left: 50%;
-  bottom: 16px;
-  transform: translateX(-50%);
-  margin: 0;
-  color: #8c96a7;
-  font-size: 11px;
-  white-space: nowrap;
+  z-index: 4;
+  left: 22px;
+  right: 22px;
+  bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 7px;
   pointer-events: none;
 }
 
-.native-ar-button {
-  position: absolute;
-  z-index: 10;
-  right: 22px;
-  bottom: 50px;
+.open-ar-button {
+  align-self: flex-end;
   min-height: 48px;
   padding: 0 20px;
   border: 0;
@@ -128,30 +145,27 @@ button {
   color: #101828;
   font-weight: 850;
   cursor: pointer;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.32);
+  pointer-events: auto;
 }
 
-.native-ar-button:disabled {
-  opacity: 0.5;
+.open-ar-button:disabled {
+  opacity: 0.55;
   cursor: wait;
 }
 
-.viewer-state {
-  position: absolute;
-  inset: 0;
-  z-index: 6;
-  display: grid;
-  place-items: center;
-  padding: 30px;
-  background: rgba(13, 17, 24, 0.78);
-  color: #aeb7c6;
-  font-size: 13px;
-  text-align: center;
-  pointer-events: none;
-}
-
-.viewer-error {
-  color: #ff9696;
+.ar-message,
+.ar-device-note {
+  align-self: flex-end;
+  max-width: 350px;
+  margin: 0;
+  padding: 6px 9px;
+  border-radius: 8px;
+  color: #9ca6b6;
+  background: rgba(8, 11, 18, 0.72);
+  font-size: 10px;
+  line-height: 1.4;
+  text-align: right;
 }
 
 .product-info {
@@ -201,7 +215,7 @@ button {
   letter-spacing: -2px;
 }
 
-.native-info {
+.webxr-info {
   width: 100%;
   display: flex;
   gap: 14px;
@@ -212,7 +226,7 @@ button {
   background: rgba(61, 255, 145, 0.045);
 }
 
-.native-info-icon {
+.webxr-info-icon {
   width: 40px;
   height: 40px;
   flex: 0 0 auto;
@@ -224,15 +238,109 @@ button {
   font-size: 21px;
 }
 
-.native-info strong {
+.webxr-info strong {
   font-size: 13px;
 }
 
-.native-info p {
+.webxr-info p {
   margin: 5px 0 0;
   color: #8994a6;
   font-size: 12px;
   line-height: 1.55;
+}
+
+.guide-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.72);
+}
+
+.camera-guide {
+  position: relative;
+  width: min(520px, 100%);
+  padding: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 22px;
+  background: #11151c;
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.55);
+}
+
+.camera-guide h2 {
+  margin: 0;
+  font-size: 19px;
+}
+
+.guide-intro {
+  margin: 7px 0 18px;
+  color: #8994a6;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.guide-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  color: #ffffff;
+  font-size: 23px;
+  cursor: pointer;
+}
+
+.guide-step {
+  display: grid;
+  grid-template-columns: 30px 1fr;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.guide-step > span {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(61, 255, 145, 0.12);
+  color: #61ffa3;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.guide-step strong {
+  font-size: 13px;
+}
+
+.guide-step p {
+  margin: 4px 0 0;
+  color: #8f99aa;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.launch-camera-button {
+  width: 100%;
+  min-height: 52px;
+  margin-top: 22px;
+  border: 0;
+  border-radius: 13px;
+  background: #35c98b;
+  color: #07150f;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.launch-camera-button:disabled {
+  opacity: 0.6;
+  cursor: wait;
 }
 
 @media (max-width: 860px) {
@@ -248,7 +356,7 @@ button {
   }
 
   .viewer-card {
-    height: 430px;
+    height: 450px;
   }
 
   .product-info h1 {
@@ -262,19 +370,28 @@ button {
   }
 
   .viewer-card {
-    height: 390px;
+    height: 420px;
     border-radius: 20px;
   }
 
-  .viewer-tip {
-    display: none;
+  .viewer-shell {
+    border-radius: 20px;
   }
 
-  .native-ar-button {
-    right: 16px;
-    bottom: 18px;
-    left: 16px;
-    width: calc(100% - 32px);
+  .ar-controls {
+    left: 14px;
+    right: 14px;
+    bottom: 14px;
+  }
+
+  .open-ar-button {
+    width: 100%;
+    align-self: stretch;
+  }
+
+  .ar-message,
+  .ar-device-note {
+    display: none;
   }
 
   .product-info h1 {
@@ -283,5 +400,17 @@ button {
 
   .description {
     font-size: 15px;
+  }
+
+  .guide-backdrop {
+    padding: 0;
+  }
+
+  .camera-guide {
+    border-right: 0;
+    border-bottom: 0;
+    border-left: 0;
+    border-radius: 22px 22px 0 0;
+    padding: 24px 20px max(22px, env(safe-area-inset-bottom));
   }
 }
