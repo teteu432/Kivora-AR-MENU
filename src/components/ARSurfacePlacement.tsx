@@ -11,7 +11,6 @@ const TARGET_HORIZONTAL_SIZE_METERS = 0.28
 export default function ARSurfacePlacement() {
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null)
   const sceneRef = useRef<THREE.Scene | null>(null)
-  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null)
   const reticleRef = useRef<THREE.Mesh | null>(null)
   const modelTemplateRef = useRef<THREE.Group | null>(null)
   const hitTestSourceRef = useRef<XRHitTestSource | null>(null)
@@ -42,7 +41,7 @@ export default function ARSurfacePlacement() {
       }
     }
 
-    checkSupport()
+    void checkSupport()
 
     return () => {
       mounted = false
@@ -69,18 +68,20 @@ export default function ARSurfacePlacement() {
   }
 
   async function loadModel() {
-    if (modelTemplateRef.current) return modelTemplateRef.current
+    if (modelTemplateRef.current) {
+      return modelTemplateRef.current
+    }
 
     const loader = new GLTFLoader()
     const gltf = await loader.loadAsync(MODEL_URL)
     const source = gltf.scene
 
-    // Normaliza o tamanho para uma medida física previsível.
     let box = new THREE.Box3().setFromObject(source)
-    let size = new THREE.Vector3()
+    const size = new THREE.Vector3()
     box.getSize(size)
 
     const horizontalSize = Math.max(size.x, size.z)
+
     const factor =
       horizontalSize > 0
         ? TARGET_HORIZONTAL_SIZE_METERS / horizontalSize
@@ -88,14 +89,16 @@ export default function ARSurfacePlacement() {
 
     source.scale.setScalar(factor)
 
-    // Recalcula a caixa após a escala.
     box = new THREE.Box3().setFromObject(source)
+
     const center = new THREE.Vector3()
     box.getCenter(center)
 
-    // Centraliza X/Z e coloca a base do modelo em Y=0.
+    // Centraliza o objeto no marcador.
     source.position.x -= center.x
     source.position.z -= center.z
+
+    // Coloca a base do objeto em Y = 0.
     source.position.y -= box.min.y
 
     const wrapper = new THREE.Group()
@@ -129,12 +132,10 @@ export default function ARSurfacePlacement() {
 
       const camera = new THREE.PerspectiveCamera()
       camera.matrixAutoUpdate = false
-      cameraRef.current = camera
 
-      // Luz ambiente + direcional para o GLB.
       scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 2.5))
 
-      const directional = new THREE.DirectionalLight(0xffffff, 2.0)
+      const directional = new THREE.DirectionalLight(0xffffff, 2)
       directional.position.set(1, 3, 2)
       scene.add(directional)
 
@@ -145,10 +146,9 @@ export default function ARSurfacePlacement() {
       const renderer = new THREE.WebGLRenderer({
         alpha: true,
         antialias: true,
-        preserveDrawingBuffer: false,
       })
-      rendererRef.current = renderer
 
+      rendererRef.current = renderer
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
       renderer.setSize(window.innerWidth, window.innerHeight)
       renderer.xr.enabled = true
@@ -163,19 +163,42 @@ export default function ARSurfacePlacement() {
       referenceSpaceRef.current = referenceSpace
 
       const viewerSpace = await session.requestReferenceSpace('viewer')
-      hitTestSourceRef.current = await session.requestHitTestSource({
+
+      const requestHitTestSource =
+        session.requestHitTestSource?.bind(session)
+
+      if (!requestHitTestSource) {
+        throw new Error(
+          'Este navegador não oferece suporte ao WebXR Hit Test.'
+        )
+      }
+
+      const hitTestSource = await requestHitTestSource({
         space: viewerSpace,
         entityTypes: ['plane'],
       })
 
+      if (!hitTestSource) {
+        throw new Error(
+          'Não foi possível iniciar a detecção de superfícies.'
+        )
+      }
+
+      hitTestSourceRef.current = hitTestSource
+
       setMessage('Procurando uma superfície horizontal…')
 
       const controller = renderer.xr.getController(0)
-      controller.addEventListener('select', placeObject)
+
+      const handleSelect = () => {
+        placeObject()
+      }
+
+      controller.addEventListener('select', handleSelect)
       scene.add(controller)
 
       session.addEventListener('end', () => {
-        controller.removeEventListener('select', placeObject)
+        controller.removeEventListener('select', handleSelect)
 
         hitTestSourceRef.current?.cancel()
         hitTestSourceRef.current = null
@@ -194,30 +217,38 @@ export default function ARSurfacePlacement() {
       })
 
       renderer.setAnimationLoop((_time, frame) => {
-        if (!frame) return
-
-        const currentReferenceSpace = referenceSpaceRef.current
-        const hitTestSource = hitTestSourceRef.current
-        const currentReticle = reticleRef.current
-
-        if (!currentReferenceSpace || !hitTestSource || !currentReticle) {
+        if (!frame) {
           renderer.render(scene, camera)
           return
         }
 
-        const hits = frame.getHitTestResults(hitTestSource)
+        const currentReferenceSpace = referenceSpaceRef.current
+        const currentHitTestSource = hitTestSourceRef.current
+        const currentReticle = reticleRef.current
+
+        if (
+          !currentReferenceSpace ||
+          !currentHitTestSource ||
+          !currentReticle
+        ) {
+          renderer.render(scene, camera)
+          return
+        }
+
+        const hits = frame.getHitTestResults(currentHitTestSource)
 
         let validPose: XRPose | null = null
 
         for (const hit of hits) {
           const pose = hit.getPose(currentReferenceSpace)
+
           if (!pose) continue
 
-          const m = pose.transform.matrix
+          const matrix = pose.transform.matrix
 
           // O eixo Y da pose representa a normal da superfície.
-          // |m[5]| perto de 1 => superfície aproximadamente horizontal.
-          const horizontalConfidence = Math.abs(m[5])
+          // Quanto mais próximo de 1, mais horizontal está a superfície.
+          const horizontalConfidence = Math.abs(matrix[5])
 
           if (horizontalConfidence >= 0.82) {
             validPose = pose
@@ -228,7 +259,10 @@ export default function ARSurfacePlacement() {
         if (validPose) {
           currentReticle.visible = true
           currentReticle.matrix.fromArray(validPose.transform.matrix)
-          setMessage('Superfície encontrada. Toque para colocar o prato.')
+
+          setMessage(
+            'Superfície encontrada. Toque para colocar o prato.'
+          )
         } else {
           currentReticle.visible = false
           setMessage('Mova o celular devagar sobre a mesa…')
@@ -238,8 +272,28 @@ export default function ARSurfacePlacement() {
       })
     } catch (error) {
       console.error(error)
+
+      const renderer = rendererRef.current
+
+      if (renderer?.domElement.parentNode) {
+        renderer.domElement.parentNode.removeChild(renderer.domElement)
+      }
+
+      renderer?.setAnimationLoop(null)
+      renderer?.dispose()
+      rendererRef.current = null
+
+      const session = sessionRef.current
+      if (session) {
+        try {
+          await session.end()
+        } catch {
+          // A sessão pode já ter sido encerrada.
+        }
+      }
+
       setMessage(
-        'Não foi possível iniciar o AR. Use Chrome no Android, HTTPS e um aparelho compatível.'
+        'Não foi possível iniciar o AR. Use HTTPS, Chrome no Android e um aparelho compatível.'
       )
     } finally {
       setLoading(false)
@@ -251,7 +305,9 @@ export default function ARSurfacePlacement() {
     const reticle = reticleRef.current
     const template = modelTemplateRef.current
 
-    if (!scene || !reticle || !template || !reticle.visible) return
+    if (!scene || !reticle || !template || !reticle.visible) {
+      return
+    }
 
     if (placedObjectRef.current) {
       scene.remove(placedObjectRef.current)
@@ -272,14 +328,16 @@ export default function ARSurfacePlacement() {
     scene.add(placed)
     placedObjectRef.current = placed
 
-    setMessage('Prato posicionado. Toque em outro ponto para mover.')
+    setMessage(
+      'Prato posicionado. Toque em outro ponto válido para mover.'
+    )
   }
 
   return (
     <div className="ar-action-area">
       <button
         className="ar-launch-button"
-        onClick={startAR}
+        onClick={() => void startAR()}
         disabled={loading || supported === false}
       >
         {loading ? 'Preparando AR…' : '📷 Ver na minha mesa'}

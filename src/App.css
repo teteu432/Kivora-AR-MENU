@@ -83,7 +83,12 @@ button {
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 28px;
   background:
-    radial-gradient(circle at center, #232a35 0%, #12161e 50%, #0d1016 100%);
+    radial-gradient(
+      circle at center,
+      #232a35 0%,
+      #12161e 50%,
+      #0d1016 100%
+    );
 }
 
 .badge {
@@ -224,7 +229,6 @@ button {
   line-height: 1.5;
 }
 
-/* Canvas criado pelo Three.js durante a sessão AR. */
 .xr-canvas {
   position: fixed !important;
   inset: 0;

@@ -40,6 +40,7 @@ function App() {
 
         <div className="product-info">
           <span className="category">PROTÓTIPO AR</span>
+
           <h1>Espetinho Especial</h1>
 
           <p className="description">
@@ -56,8 +57,10 @@ function App() {
 
           <div className="surface-info">
             <span className="surface-icon">◎</span>
+
             <div>
               <strong>Como funciona</strong>
+
               <p>
                 Aponte para uma mesa e mova o celular devagar. Quando o
                 círculo verde aparecer, toque para posicionar o prato naquele
