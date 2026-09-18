@@ -1,42 +1,60 @@
-# Kivora AR Menu v0.8.2 — Scale Fix
+# Kivora AR Menu v0.8.3
 
-Esta versão corrige um bug de escala acumulativa da v0.8.1.
+Esta versão mantém o WebXR da v0.8.2 e transforma a escala física em uma
+propriedade real do produto.
 
-## O bug
+## Principal mudança
 
-A versão anterior chamava `getDimensions()` novamente depois de alterar
-`scale`.
+O consumidor não calibra mais o produto.
 
-Como as dimensões da cena podem refletir a transformação aplicada, a nova
-calibração era calculada usando o tamanho já alterado.
+Cada item possui:
 
-Exemplo:
+- `realWidthCm`
+- `realHeightCm`
+- `modelUrl`
+- preço
+- nome
+- descrição
 
-1. mede modelo;
-2. aplica escala para 15 cm;
-3. mede de novo o modelo já escalado;
-4. trata essa nova medida como se fosse a medida original;
-5. aplica outra escala;
-6. o tamanho explode ou encolhe.
+O modelo 3D é escalado automaticamente para a largura física cadastrada.
 
-## Correção
+## Calibração de desenvolvedor
 
-Agora:
+Abra:
 
-1. as dimensões originais são capturadas UMA ÚNICA VEZ;
-2. a largura original é congelada em `originalHorizontalSizeRef`;
-3. qualquer valor escolhido é sempre calculado a partir da mesma referência;
-4. mudar de 13 cm para 15 cm significa exatamente uma razão 15/13;
-5. nunca recalculamos a base depois de alterar `scale`;
-6. `updateFraming()` é chamado após atualizar a escala para manter o preview correto.
+`/?calibrate=1`
 
-## AR
+para exibir o painel técnico.
 
-O sistema continua usando:
+Esse painel permite testar outra largura sem alterar o cadastro oficial.
 
-`ar-modes="webxr"`
+Sem `?calibrate=1`, o consumidor vê apenas o produto e o botão AR.
 
-Nenhuma lógica da câmera foi alterada.
+## Contato visual com a mesa
+
+Mantemos:
+
+- `ar-placement="floor"`
+- `ar-scale="fixed"`
+
+E aumentamos a sombra de contato:
+
+- `shadow-intensity="1.45"`
+- `shadow-softness="0.9"`
+
+A sombra ajuda o objeto a parecer apoiado na superfície.
+
+IMPORTANTE:
+se o próprio GLB possuir geometria invisível/solta abaixo do hambúrguer, a
+correção definitiva exige limpar o GLB em Blender ou outra ferramenta 3D.
+O navegador não consegue corrigir vértices errados do asset apenas com CSS.
+
+## Verificação de proporção
+
+Além da largura, o sistema calcula qual altura o modelo terá depois da escala.
+
+Se a altura prevista diferir muito de `realHeightCm`, o painel de calibração
+avisa que o problema é a PROPORÇÃO do modelo, e não a escala do AR.
 
 ## Build
 
@@ -48,6 +66,6 @@ npm run typecheck
 npm run build
 ```
 
-Procure:
+A versão correta mostra:
 
-`PROTÓTIPO AR • v0.8.2`
+`PROTÓTIPO AR • v0.8.3`

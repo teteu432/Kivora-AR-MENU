@@ -1,16 +1,23 @@
 import './App.css'
-import BurgerWebXR from './components/BurgerWebXR'
+import ProductWebXR from './components/ProductWebXR'
+import { xBurger } from './products'
 
 function App() {
   return (
     <main className="page">
       <header className="header">
         <div className="brand">
-          <div className="brand-mark">K</div>
+          <div className="brand-mark">
+            K
+          </div>
 
           <div className="brand-copy">
-            <strong>Kivora AR Menu</strong>
-            <span>Cardápio em Realidade Aumentada</span>
+            <strong>
+              Kivora AR Menu
+            </strong>
+            <span>
+              Cardápio em Realidade Aumentada
+            </span>
           </div>
         </div>
       </header>
@@ -21,39 +28,46 @@ function App() {
             VISUALIZAÇÃO 3D
           </span>
 
-          <BurgerWebXR />
+          <ProductWebXR
+            product={xBurger}
+          />
         </div>
 
         <div className="product-info">
           <span className="eyebrow">
-            PROTÓTIPO AR • v0.8.2
+            PROTÓTIPO AR • v0.8.3
           </span>
 
-          <h1>X-Burguer Especial</h1>
+          <h1>
+            {xBurger.name}
+          </h1>
 
           <p className="description">
-            Calibração física corrigida: qualquer tamanho agora é calculado
-            sempre a partir da dimensão original do modelo 3D.
+            {xBurger.description}
           </p>
 
           <div className="price">
             <span>R$</span>
-            <strong>29,90</strong>
+            <strong>
+              {xBurger.price
+                .toFixed(2)
+                .replace('.', ',')}
+            </strong>
           </div>
 
-          <div className="webxr-info">
-            <span className="webxr-info-icon">
-              ↔
-            </span>
+          <div className="physical-card">
+            <span>↔</span>
 
             <div>
               <strong>
-                Sem escala acumulativa
+                Tamanho real cadastrado
               </strong>
 
               <p>
-                13 cm e 15 cm agora diferem apenas 15,4%, como deveria acontecer
-                no mundo real.
+                Este produto está configurado
+                com {xBurger.realWidthCm} cm de
+                largura. A escala fica fixa
+                durante o AR.
               </p>
             </div>
           </div>
