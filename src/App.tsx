@@ -18,22 +18,17 @@ function App() {
         <div className="viewer-container">
           <span className="badge">Visualização 3D</span>
 
-          <model-viewer
-            src="https://modelviewer.dev/shared-assets/models/shishkebab.glb"
-            alt="Modelo 3D de um prato"
-            ar
-            ar-modes="webxr scene-viewer quick-look"
-            camera-controls
-            auto-rotate
-            shadow-intensity="1"
-            ar-placement="floor"
-            ar-scale="auto"
-            touch-action="pan-y"
-            loading="eager"
-            style={{
-              width: '100%',
-              height: '100%',
-            }}
+  <model-viewer
+  src="https://modelviewer.dev/shared-assets/models/shishkebab.glb"
+  alt="Modelo 3D de um prato"
+  ar
+  ar-modes="webxr scene-viewer quick-look"
+  camera-controls
+  auto-rotate
+  shadow-intensity="1"
+  ar-placement="floor"
+  ar-scale="fixed"
+  scale="0.2 0.2 0.2"
           >
             <button slot="ar-button" className="ar-button">
               📷 Ver na minha mesa
