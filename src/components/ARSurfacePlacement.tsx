@@ -2,13 +2,10 @@ import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 
-const PRIMARY_MODEL_URL =
-  'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/Hamburger/glTF-Binary/Hamburger.glb'
+const MODEL_URL =
+  'https://cdn.3dassets.dev/assets/34314/v1/model.glb'
 
-const FALLBACK_MODEL_URL =
-  'https://modelviewer.dev/shared-assets/models/shishkebab.glb'
-
-const TARGET_HORIZONTAL_SIZE_METERS = 0.16
+const TARGET_HORIZONTAL_SIZE_METERS = 0.406
 const HORIZONTAL_THRESHOLD = 0.58
 const STABLE_FRAMES_REQUIRED = 7
 const MAX_POSITION_DELTA = 0.05
@@ -73,13 +70,9 @@ export default function ARSurfacePlacement() {
     const material = reticleMaterialRef.current
     if (!material) return
 
-    if (stage === 'ready') {
-      material.color.setHex(0x3dff91)
-    } else if (stage === 'candidate') {
-      material.color.setHex(0xffd44d)
-    } else {
-      material.color.setHex(0x3dff91)
-    }
+    material.color.setHex(
+      stage === 'ready' ? 0x3dff91 : 0xffd44d
+    )
   }
 
   function createReticle() {
@@ -87,7 +80,7 @@ export default function ARSurfacePlacement() {
     geometry.rotateX(-Math.PI / 2)
 
     const material = new THREE.MeshBasicMaterial({
-      color: 0x3dff91,
+      color: 0xffd44d,
       side: THREE.DoubleSide,
       transparent: true,
       opacity: 0.95,
@@ -104,24 +97,13 @@ export default function ARSurfacePlacement() {
     return reticle
   }
 
-  async function loadModelFromUrl(url: string) {
-    const loader = new GLTFLoader()
-    return loader.loadAsync(url)
-  }
-
   async function loadModel() {
     if (modelTemplateRef.current) {
       return modelTemplateRef.current
     }
 
-    let gltf
-
-    try {
-      gltf = await loadModelFromUrl(PRIMARY_MODEL_URL)
-    } catch {
-      gltf = await loadModelFromUrl(FALLBACK_MODEL_URL)
-    }
-
+    const loader = new GLTFLoader()
+    const gltf = await loader.loadAsync(MODEL_URL)
     const source = gltf.scene
 
     let box = new THREE.Box3().setFromObject(source)
@@ -198,7 +180,7 @@ export default function ARSurfacePlacement() {
     placedObjectRef.current = placed
 
     setStatus(
-      'X-burguer posicionado. Toque em outro ponto verde para movê-lo.'
+      'Lanche posicionado. Toque em outro ponto verde para movê-lo.'
     )
   }
 
@@ -396,8 +378,6 @@ export default function ARSurfacePlacement() {
           if (!pose) {
             currentReticle.visible = false
             stableFramesRef.current = 0
-            lastStableRawPositionRef.current = null
-            setReticleStage('searching')
             renderer.render(scene, camera)
             return
           }
@@ -414,6 +394,7 @@ export default function ARSurfacePlacement() {
           const rawMatrix = new THREE.Matrix4().fromArray(matrix)
           const rawQuaternion = new THREE.Quaternion()
           const throwawayScale = new THREE.Vector3()
+
           rawMatrix.decompose(
             new THREE.Vector3(),
             rawQuaternion,
@@ -459,13 +440,10 @@ export default function ARSurfacePlacement() {
 
             if (stableFramesRef.current >= STABLE_FRAMES_REQUIRED) {
               stage = 'ready'
-            } else {
-              stage = 'candidate'
             }
           } else {
             stableFramesRef.current = 0
             lastStableRawPositionRef.current = null
-            stage = 'candidate'
           }
 
           currentReticle.visible = true
@@ -479,15 +457,11 @@ export default function ARSurfacePlacement() {
 
           currentReticle.matrix.copy(displayMatrix)
 
-          if (stage === 'ready') {
-            setStatus(
-              'Superfície estabilizada. Toque para posicionar o x-burguer.'
-            )
-          } else {
-            setStatus(
-              'Superfície encontrada. Continue movendo devagar até o círculo ficar verde.'
-            )
-          }
+          setStatus(
+            stage === 'ready'
+              ? 'Superfície estabilizada. Toque para posicionar o lanche.'
+              : 'Superfície encontrada. Continue devagar até o círculo ficar verde.'
+          )
 
           renderer.render(scene, camera)
         }

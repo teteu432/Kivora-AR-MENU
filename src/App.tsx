@@ -2,7 +2,7 @@ import './App.css'
 import ARSurfacePlacement from './components/ARSurfacePlacement'
 
 const BURGER_MODEL_URL =
-  'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/Hamburger/glTF-Binary/Hamburger.glb'
+  'https://cdn.3dassets.dev/assets/34314/v1/model.glb'
 
 function App() {
   return (
@@ -24,7 +24,7 @@ function App() {
 
           <model-viewer
             src={BURGER_MODEL_URL}
-            alt="Modelo 3D de um x-burguer"
+            alt="Combo 3D com x-burguer e batata"
             camera-controls
             auto-rotate
             shadow-intensity="1"
@@ -42,13 +42,13 @@ function App() {
         </div>
 
         <div className="product-info">
-          <span className="eyebrow">PROTÓTIPO AR • v0.4.0</span>
+          <span className="eyebrow">PROTÓTIPO AR • v0.4.1</span>
 
           <h1>X-Burguer Especial</h1>
 
           <p className="description">
-            Visualize o hambúrguer em 3D e depois posicione-o em uma superfície
-            real usando a câmera do celular com detecção estabilizada.
+            Visualize o lanche em 3D e posicione-o sobre a mesa usando
+            realidade aumentada com detecção estabilizada de superfície.
           </p>
 
           <div className="price">
@@ -64,9 +64,9 @@ function App() {
             <div>
               <strong>Detecção aprimorada</strong>
               <p>
-                O marcador amarelo indica leitura inicial da superfície. O
-                marcador verde indica que a superfície está estável e pronta
-                para posicionar o x-burguer.
+                Amarelo significa que a superfície está sendo analisada.
+                Verde significa que o ponto está estável e pronto para receber
+                o lanche.
               </p>
             </div>
           </div>
