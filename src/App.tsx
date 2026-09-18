@@ -6,22 +6,22 @@ function App() {
     <main className="page">
       <header className="header">
         <div className="brand">
-          <span className="brand-icon">K</span>
+          <div className="brand-mark">K</div>
 
-          <div>
+          <div className="brand-copy">
             <strong>Kivora AR Menu</strong>
-            <small>Cardápio em Realidade Aumentada</small>
+            <span>Cardápio em Realidade Aumentada</span>
           </div>
         </div>
       </header>
 
       <section className="product">
-        <div className="viewer-container">
-          <span className="badge">Visualização 3D</span>
+        <div className="viewer-card">
+          <span className="viewer-badge">VISUALIZAÇÃO 3D</span>
 
           <model-viewer
             src="https://modelviewer.dev/shared-assets/models/shishkebab.glb"
-            alt="Modelo 3D do prato"
+            alt="Modelo 3D de um espetinho"
             camera-controls
             auto-rotate
             shadow-intensity="1"
@@ -33,19 +33,19 @@ function App() {
             }}
           />
 
-          <div className="viewer-help">
+          <p className="viewer-tip">
             Arraste para girar • Use o zoom para aproximar
-          </div>
+          </p>
         </div>
 
         <div className="product-info">
-          <span className="category">PROTÓTIPO AR</span>
+          <span className="eyebrow">PROTÓTIPO AR • v0.3</span>
 
           <h1>Espetinho Especial</h1>
 
           <p className="description">
-            Visualize o prato em 3D e, no celular, posicione-o em uma
-            superfície real usando detecção de superfície.
+            Visualize o produto em 3D e depois posicione-o em uma superfície
+            real usando a câmera do celular.
           </p>
 
           <div className="price">
@@ -55,16 +55,15 @@ function App() {
 
           <ARSurfacePlacement />
 
-          <div className="surface-info">
-            <span className="surface-icon">◎</span>
+          <div className="instructions-card">
+            <div className="instructions-icon">◎</div>
 
             <div>
-              <strong>Como funciona</strong>
+              <strong>Detecção de superfície</strong>
 
               <p>
-                Aponte para uma mesa e mova o celular devagar. Quando o
-                círculo verde aparecer, toque para posicionar o prato naquele
-                ponto.
+                Aponte para a mesa e mova o celular lentamente. Quando o
+                círculo verde aparecer, toque na tela para posicionar o prato.
               </p>
             </div>
           </div>
