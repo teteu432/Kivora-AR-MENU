@@ -1,4 +1,4 @@
-# Modelo 3D usado no protótipo
+# Asset 3D do protótipo
 
 Arquivo:
 `hamburger__food_big-hamburger.glb`
@@ -6,13 +6,13 @@ Arquivo:
 Fonte intermediária:
 `mindset-code/burger-house-3d`
 
-Commit fixado:
+Commit:
 `c2bddc597efe4870326c843a6e056727752fc261`
 
-O repositório de origem informa que seus modelos GLB foram obtidos no
-Sketchfab sob licenças Creative Commons, mas não identifica neste arquivo
-qual licença individual corresponde a este modelo.
+O repositório informa que seus modelos vieram do Sketchfab sob licenças
+Creative Commons, mas não documenta neste arquivo a licença individual desse
+asset.
 
-Para demonstração técnica, o projeto aponta para a cópia pública fixada
-nesse commit. Para venda/uso comercial, substitua por um asset cuja licença
-individual esteja documentada ou por um modelo produzido para o restaurante.
+Não use este modelo em produção comercial sem confirmar a licença e eventual
+atribuição. Para cliente real, prefira GLB produzido/licenciado especificamente
+para o restaurante.

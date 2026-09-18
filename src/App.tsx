@@ -1,7 +1,5 @@
 import './App.css'
-import { APP_VERSION } from './config'
-import BurgerPreview from './components/BurgerPreview'
-import ReliableARPlacement from './components/ReliableARPlacement'
+import BurgerARViewer from './components/BurgerARViewer'
 
 function App() {
   return (
@@ -19,23 +17,23 @@ function App() {
 
       <section className="product">
         <div className="viewer-card">
-          <span className="viewer-badge">VISUALIZAÇÃO 3D</span>
+          <span className="viewer-badge">VISUALIZAÇÃO 3D + AR</span>
 
-          <BurgerPreview />
+          <BurgerARViewer />
 
           <p className="viewer-tip">
-            Arraste para girar • Use o zoom para aproximar
+            Arraste para girar • No celular, use “Ver na minha mesa”
           </p>
         </div>
 
         <div className="product-info">
-          <span className="eyebrow">PROTÓTIPO AR • {APP_VERSION}</span>
+          <span className="eyebrow">PROTÓTIPO AR • v0.7.0</span>
 
           <h1>X-Burguer Especial</h1>
 
           <p className="description">
-            Visualize o hambúrguer em 3D e, no celular, posicione-o sobre uma
-            superfície real usando WebXR Hit Test.
+            A experiência de realidade aumentada agora usa o mecanismo nativo
+            de AR do aparelho para detectar a superfície e posicionar o lanche.
           </p>
 
           <div className="price">
@@ -43,18 +41,16 @@ function App() {
             <strong>29,90</strong>
           </div>
 
-          <ReliableARPlacement />
-
-          <div className="instructions-card">
-            <div className="instructions-icon">◎</div>
+          <div className="native-info">
+            <span className="native-info-icon">◎</span>
 
             <div>
-              <strong>Fluxo desta versão</strong>
+              <strong>AR nativo no Android</strong>
 
               <p>
-                Primeiro garantimos câmera + Hit Test + posicionamento sem
-                filtros agressivos. Quando isso estiver validado no aparelho,
-                adicionamos suavização e preferência por superfícies de mesa.
+                Aponte o celular para a mesa e mova-o lentamente. O próprio
+                ARCore orienta a detecção e o posicionamento. A escala do
+                hambúrguer fica bloqueada para manter o tamanho planejado.
               </p>
             </div>
           </div>
