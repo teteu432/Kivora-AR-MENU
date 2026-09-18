@@ -2,6 +2,12 @@
   box-sizing: border-box;
 }
 
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
 body {
   margin: 0;
   background: #090b10;
@@ -16,7 +22,7 @@ body {
 }
 
 button {
-  font-family: inherit;
+  font: inherit;
 }
 
 .page {
@@ -29,7 +35,7 @@ button {
   align-items: center;
   padding: 0 7%;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(9, 11, 16, 0.92);
+  background: rgba(9, 11, 16, 0.94);
 }
 
 .brand {
@@ -52,10 +58,6 @@ button {
 .brand div {
   display: flex;
   flex-direction: column;
-}
-
-.brand strong {
-  font-size: 16px;
 }
 
 .brand small {
@@ -81,12 +83,7 @@ button {
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 28px;
   background:
-    radial-gradient(
-      circle at center,
-      #232a35 0%,
-      #12161e 50%,
-      #0d1016 100%
-    );
+    radial-gradient(circle at center, #232a35 0%, #12161e 50%, #0d1016 100%);
 }
 
 .badge {
@@ -95,8 +92,8 @@ button {
   top: 22px;
   left: 22px;
   padding: 8px 13px;
-  border-radius: 100px;
-  background: rgba(0, 0, 0, 0.4);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.45);
   color: #d9e0eb;
   font-size: 12px;
   backdrop-filter: blur(10px);
@@ -104,31 +101,14 @@ button {
 
 .viewer-help {
   position: absolute;
+  z-index: 2;
   bottom: 20px;
   left: 50%;
-  z-index: 2;
   transform: translateX(-50%);
   white-space: nowrap;
   color: #9da5b3;
   font-size: 12px;
   pointer-events: none;
-}
-
-.ar-button {
-  position: absolute;
-  bottom: 58px;
-  left: 50%;
-  z-index: 10;
-  transform: translateX(-50%);
-  padding: 14px 22px;
-  border: 0;
-  border-radius: 100px;
-  background: #ffffff;
-  color: #111827;
-  font-size: 14px;
-  font-weight: 700;
-  cursor: pointer;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
 }
 
 .product-info {
@@ -178,69 +158,80 @@ button {
   letter-spacing: -2px;
 }
 
-.actions {
+.ar-action-area {
   width: 100%;
-  display: flex;
-  gap: 12px;
-  margin-top: 30px;
+  margin-top: 28px;
 }
 
-.primary-button,
-.secondary-button {
-  min-height: 52px;
-  padding: 0 24px;
-  border-radius: 13px;
-  font-size: 14px;
-  font-weight: 700;
+.ar-launch-button {
+  width: 100%;
+  min-height: 56px;
+  padding: 0 22px;
+  border: 0;
+  border-radius: 14px;
+  background: #2563eb;
+  color: white;
+  font-weight: 800;
   cursor: pointer;
 }
 
-.primary-button {
-  flex: 1;
-  border: 0;
-  background: #2563eb;
-  color: #fff;
-}
-
-.primary-button:hover {
+.ar-launch-button:hover:not(:disabled) {
   background: #1d4ed8;
 }
 
-.secondary-button {
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: transparent;
-  color: #fff;
+.ar-launch-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
-.ar-info {
+.ar-status {
+  margin: 11px 2px 0;
+  color: #8f99aa;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.surface-info {
   display: flex;
   gap: 15px;
-  margin-top: 40px;
-  padding: 19px;
-  border: 1px solid rgba(37, 99, 235, 0.25);
+  margin-top: 24px;
+  padding: 18px;
+  border: 1px solid rgba(51, 255, 136, 0.18);
   border-radius: 15px;
-  background: rgba(37, 99, 235, 0.07);
+  background: rgba(51, 255, 136, 0.05);
 }
 
-.ar-info-icon {
+.surface-icon {
   width: 40px;
   height: 40px;
-  flex-shrink: 0;
+  flex: 0 0 auto;
   display: grid;
   place-items: center;
   border-radius: 10px;
-  background: rgba(37, 99, 235, 0.15);
+  background: rgba(51, 255, 136, 0.12);
+  color: #70ffa8;
+  font-size: 22px;
 }
 
-.ar-info strong {
+.surface-info strong {
   font-size: 13px;
 }
 
-.ar-info p {
+.surface-info p {
   margin: 5px 0 0;
   color: #8d97a8;
   font-size: 12px;
   line-height: 1.5;
+}
+
+/* Canvas criado pelo Three.js durante a sessão AR. */
+.xr-canvas {
+  position: fixed !important;
+  inset: 0;
+  z-index: 9999;
+  width: 100vw !important;
+  height: 100vh !important;
+  pointer-events: none;
 }
 
 @media (max-width: 850px) {
@@ -261,15 +252,6 @@ button {
 
   .product-info h1 {
     font-size: 40px;
-  }
-
-  .actions {
-    flex-direction: column;
-  }
-
-  .primary-button,
-  .secondary-button {
-    width: 100%;
   }
 }
 

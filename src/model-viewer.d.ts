@@ -13,14 +13,9 @@ declare module 'react' {
       > & {
         src?: string
         alt?: string
-        ar?: boolean
-        'ar-modes'?: string
         'camera-controls'?: boolean
         'auto-rotate'?: boolean
         'shadow-intensity'?: string
-        'ar-placement'?: 'floor' | 'wall'
-        'ar-scale'?: 'auto' | 'fixed'
-        scale?: string
         'touch-action'?: string
         loading?: 'auto' | 'lazy' | 'eager'
         style?: CSSProperties

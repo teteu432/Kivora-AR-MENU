@@ -1,8 +1,8 @@
-# Kivora AR Menu
+# Kivora AR Menu — Surface Placement
 
-Protótipo de cardápio 3D com suporte a Realidade Aumentada.
+Versão com WebXR Hit Test para detectar superfícies e posicionar o modelo 3D.
 
-## Rodar
+## Instalação
 
 ```bash
 npm install
@@ -15,12 +15,14 @@ npm run dev
 npm run build
 ```
 
-## Testar no celular
+## Teste de AR
 
-Para acesso local:
+O modo AR precisa ser testado em HTTPS e em um aparelho/navegador com suporte a WebXR immersive-ar + hit-test.
 
-```bash
-npm run dev -- --host
-```
+1. Publique na Vercel.
+2. Abra o link HTTPS no celular.
+3. Toque em "Ver na minha mesa".
+4. Mova o aparelho devagar apontando para uma mesa.
+5. Quando o círculo verde aparecer, toque na tela para colocar o prato.
 
-Para testar AR de forma confiável, publique na Vercel e abra a URL HTTPS no celular.
+A detecção procura uma superfície aproximadamente horizontal. Ela não classifica semanticamente "mesa".
