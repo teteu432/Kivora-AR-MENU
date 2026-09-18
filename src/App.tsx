@@ -1,8 +1,7 @@
 import './App.css'
+import { APP_VERSION } from './config'
+import BurgerPreview from './components/BurgerPreview'
 import ReliableARPlacement from './components/ReliableARPlacement'
-
-const BURGER_MODEL_URL =
-  'https://cdn.jsdelivr.net/gh/mindset-code/burger-house-3d@c2bddc597efe4870326c843a6e056727752fc261/public/hamburger__food_big-hamburger.glb'
 
 function App() {
   return (
@@ -22,21 +21,7 @@ function App() {
         <div className="viewer-card">
           <span className="viewer-badge">VISUALIZAÇÃO 3D</span>
 
-          <model-viewer
-            src={BURGER_MODEL_URL}
-            alt="Hambúrguer 3D"
-            camera-controls
-            auto-rotate
-            shadow-intensity="1.2"
-            shadow-softness="0.9"
-            exposure="1.05"
-            touch-action="pan-y"
-            loading="eager"
-            style={{
-              width: '100%',
-              height: '100%',
-            }}
-          />
+          <BurgerPreview />
 
           <p className="viewer-tip">
             Arraste para girar • Use o zoom para aproximar
@@ -44,13 +29,13 @@ function App() {
         </div>
 
         <div className="product-info">
-          <span className="eyebrow">PROTÓTIPO AR • v0.5.0</span>
+          <span className="eyebrow">PROTÓTIPO AR • {APP_VERSION}</span>
 
           <h1>X-Burguer Especial</h1>
 
           <p className="description">
-            Aponte o celular para a mesa, espere o círculo verde aparecer e
-            toque para posicionar o lanche no ambiente.
+            Visualize o hambúrguer em 3D e, no celular, posicione-o sobre uma
+            superfície real usando WebXR Hit Test.
           </p>
 
           <div className="price">
@@ -64,11 +49,12 @@ function App() {
             <div className="instructions-icon">◎</div>
 
             <div>
-              <strong>Posicionamento simplificado</strong>
+              <strong>Fluxo desta versão</strong>
+
               <p>
-                Nesta versão, qualquer superfície encontrada pelo Hit Test
-                exibe imediatamente o marcador. Primeiro vamos garantir uma
-                detecção confiável; depois refinamos a identificação de mesa.
+                Primeiro garantimos câmera + Hit Test + posicionamento sem
+                filtros agressivos. Quando isso estiver validado no aparelho,
+                adicionamos suavização e preferência por superfícies de mesa.
               </p>
             </div>
           </div>

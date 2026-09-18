@@ -1,26 +1,29 @@
-# Kivora AR Menu v0.5.0
+# Kivora AR Menu v0.6.0 — auditado
 
-Esta versão troca a implementação anterior por um fluxo de WebXR Hit Test
-baseado na estrutura do exemplo oficial do Three.js.
+Esta versão foi reorganizada para reduzir pontos de falha.
 
-## Mudanças principais
+## Arquitetura
 
-- removidos filtros de inclinação que podiam impedir o retículo de aparecer;
-- Hit Test solicitado a partir do `viewer` space durante a sessão XR;
-- referência espacial obtida diretamente de `renderer.xr.getReferenceSpace()`;
-- retículo verde grande e de alto contraste;
-- toque na tela posiciona o hambúrguer no retículo;
-- modelo único de hambúrguer, em vez do combo low-poly;
-- sombra artificial suave sob o lanche para melhorar a sensação de contato com a mesa.
+- React
+- TypeScript
+- Vite
+- Three.js
+- WebXR
+- WebXR Hit Test
 
-## Modelo 3D
+`@google/model-viewer` foi removido. A visualização 3D normal e o AR agora usam
+a mesma engine: Three.js.
 
-URL usada no protótipo:
+## Modelo 3D do protótipo
 
 `https://cdn.jsdelivr.net/gh/mindset-code/burger-house-3d@c2bddc597efe4870326c843a6e056727752fc261/public/hamburger__food_big-hamburger.glb`
 
-Antes de uso comercial, confirme a licença individual/atribuição do asset
-ou substitua por um modelo próprio do restaurante.
+O arquivo existe no repositório público `mindset-code/burger-house-3d`,
+fixado no commit `c2bddc597efe4870326c843a6e056727752fc261`.
+
+O repositório informa que os modelos vieram do Sketchfab sob licenças
+Creative Commons. Antes de uso comercial, confirme a licença e atribuição
+do modelo individual ou substitua por um GLB próprio do restaurante.
 
 ## Instalação limpa
 
@@ -33,15 +36,40 @@ npm install
 npm run build
 ```
 
-Na interface deve aparecer:
+## Vercel
 
-`PROTÓTIPO AR • v0.5.0`
+- Framework: Vite
+- Build: `npm run build`
+- Output: `dist`
 
-## Teste
+## Teste físico
 
-1. Publique em HTTPS (Vercel).
-2. Abra pelo Chrome no Android compatível.
-3. Toque no botão de AR.
-4. Aponte o centro da câmera para a mesa.
-5. Mova o celular lentamente.
-6. Assim que o círculo verde aparecer, toque na tela.
+Na página deve aparecer:
+
+`PROTÓTIPO AR • v0.6.0`
+
+No Android/Chrome compatível:
+
+1. Aguarde o modelo ficar pronto.
+2. Toque em `Ver na minha mesa`.
+3. A câmera AR deve assumir a tela.
+4. Mova o aparelho devagar apontando para a mesa.
+5. O círculo verde deve aparecer quando o Hit Test retornar uma superfície.
+6. Toque na tela para posicionar o hambúrguer.
+7. Toque em outro ponto válido para reposicionar.
+8. Encerre o AR pelo controle do navegador.
+9. Abra novamente para confirmar que a segunda sessão funciona.
+
+## Diagnóstico
+
+A página inclui um painel de diagnóstico que mostra:
+
+- contexto HTTPS;
+- presença da API WebXR;
+- suporte a immersive-ar;
+- estado do modelo 3D;
+- estado da sessão;
+- estado do Hit Test;
+- se algum hit foi detectado.
+
+Esses dados continuam disponíveis quando a sessão AR é encerrada.

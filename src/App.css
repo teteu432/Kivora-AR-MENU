@@ -7,6 +7,8 @@ button {
 }
 
 .page {
+  position: relative;
+  z-index: 1;
   min-height: 100vh;
   background:
     radial-gradient(circle at 15% 10%, rgba(37, 99, 235, 0.12), transparent 26rem),
@@ -76,9 +78,35 @@ button {
   box-shadow: 0 30px 90px rgba(0, 0, 0, 0.32);
 }
 
+.preview-host {
+  position: absolute;
+  inset: 0;
+}
+
+.preview-host canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.preview-message {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  color: #8c96a7;
+  font-size: 13px;
+  pointer-events: none;
+}
+
+.preview-error {
+  color: #ff8a8a;
+}
+
 .viewer-badge {
   position: absolute;
-  z-index: 2;
+  z-index: 3;
   top: 22px;
   left: 22px;
   padding: 8px 12px;
@@ -92,7 +120,7 @@ button {
 
 .viewer-tip {
   position: absolute;
-  z-index: 2;
+  z-index: 3;
   left: 50%;
   bottom: 16px;
   transform: translateX(-50%);
@@ -159,7 +187,8 @@ button {
   width: 100%;
 }
 
-.ar-button-host > button {
+.ar-placeholder-button,
+.ar-button-host > .kivora-ar-button {
   position: static !important;
   width: 100% !important;
   min-width: 0 !important;
@@ -180,7 +209,12 @@ button {
   cursor: pointer !important;
 }
 
-.ar-button-host > button:hover {
+.ar-placeholder-button {
+  opacity: 0.55 !important;
+  cursor: wait !important;
+}
+
+.ar-button-host > .kivora-ar-button:hover {
   background: #1d4ed8 !important;
 }
 
@@ -189,6 +223,40 @@ button {
   margin: 10px 2px 0;
   color: #909bad;
   font-size: 12px;
+  line-height: 1.5;
+}
+
+.diagnostics {
+  width: 100%;
+  margin-top: 10px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.025);
+  color: #aab3c2;
+  font-size: 12px;
+}
+
+.diagnostics summary {
+  cursor: pointer;
+  font-weight: 700;
+  color: #c6ceda;
+}
+
+.diagnostics-grid {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 7px 14px;
+  margin-top: 12px;
+}
+
+.diagnostics-grid strong {
+  color: #ffffff;
+}
+
+.diagnostic-error {
+  margin: 12px 0 0;
+  color: #ff8a8a;
   line-height: 1.5;
 }
 
@@ -226,13 +294,48 @@ button {
   line-height: 1.55;
 }
 
-.xr-render-canvas {
-  position: fixed !important;
+
+.xr-overlay-root {
+  position: fixed;
   inset: 0;
-  z-index: -1;
-  width: 1px !important;
-  height: 1px !important;
-  opacity: 0;
+  pointer-events: none;
+}
+
+.xr-exit-button {
+  position: absolute;
+  top: max(18px, env(safe-area-inset-top));
+  right: max(18px, env(safe-area-inset-right));
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.45);
+  color: #ffffff;
+  font-size: 22px;
+  line-height: 1;
+  pointer-events: auto;
+}
+
+/*
+  Canvas WebXR:
+  - fica anexado e visível para o WebGL context;
+  - é transparente enquanto a página normal está aberta;
+  - não recebe toques;
+  - não usamos DOM Overlay na sessão AR.
+*/
+.xr-canvas-host {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.xr-canvas-host canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
   pointer-events: none;
 }
 

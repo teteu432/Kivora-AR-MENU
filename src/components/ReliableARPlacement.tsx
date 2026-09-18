@@ -1,32 +1,46 @@
 import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { ARButton } from 'three/examples/jsm/webxr/ARButton.js'
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
+import { getBurgerModel } from '../lib/burgerModel'
+import ARDiagnostics, { type DiagnosticState } from './ARDiagnostics'
 
-const MODEL_URL =
-  'https://cdn.jsdelivr.net/gh/mindset-code/burger-house-3d@c2bddc597efe4870326c843a6e056727752fc261/public/hamburger__food_big-hamburger.glb'
-
-const TARGET_BURGER_WIDTH_METERS = 0.15
+const initialDiagnostic: DiagnosticState = {
+  secureContext: window.isSecureContext,
+  xrApi: Boolean(navigator.xr),
+  immersiveAr: 'checking',
+  model: 'loading',
+  session: 'idle',
+  hitTest: 'idle',
+  hitEverDetected: false,
+  lastError: null,
+}
 
 export default function ReliableARPlacement() {
   const buttonHostRef = useRef<HTMLDivElement | null>(null)
-  const [status, setStatus] = useState(
-    'Abra pelo celular, inicie o AR e aponte o centro da câmera para a mesa.'
-  )
+  const canvasHostRef = useRef<HTMLDivElement | null>(null)
+
+  const [status, setStatus] = useState('Validando AR e carregando o modelo…')
+  const [diagnostic, setDiagnostic] =
+    useState<DiagnosticState>(initialDiagnostic)
 
   useEffect(() => {
-    const host = buttonHostRef.current
-    if (!host) return
+    const buttonHost = buttonHostRef.current
+    const canvasHost = canvasHostRef.current
+
+    if (!buttonHost || !canvasHost) return
 
     let disposed = false
-    let hitTestSource: XRHitTestSource | null = null
-    let hitTestSourceRequested = false
     let modelTemplate: THREE.Group | null = null
     let placedObject: THREE.Object3D | null = null
-    let lastReticleVisible = false
+    let hitTestSource: XRHitTestSource | null = null
+    let hitTestSourceRequested = false
+    let hitVisible = false
+    let arButton: HTMLElement | null = null
+    let buttonObserver: MutationObserver | null = null
+    let overlayRoot: HTMLDivElement | null = null
+    let overlayCloseButton: HTMLButtonElement | null = null
 
     const scene = new THREE.Scene()
-
     const camera = new THREE.PerspectiveCamera(
       70,
       window.innerWidth / window.innerHeight,
@@ -34,34 +48,35 @@ export default function ReliableARPlacement() {
       20
     )
 
-    const light = new THREE.HemisphereLight(
-      0xffffff,
-      0xbbbbff,
-      3
-    )
-    light.position.set(0.5, 1, 0.25)
-    scene.add(light)
-
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
       alpha: true,
     })
 
-    renderer.setPixelRatio(window.devicePixelRatio)
+    renderer.outputColorSpace = THREE.SRGBColorSpace
+    renderer.toneMapping = THREE.ACESFilmicToneMapping
+    renderer.toneMappingExposure = 1.05
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
     renderer.setSize(window.innerWidth, window.innerHeight)
     renderer.xr.enabled = true
-    renderer.domElement.className = 'xr-render-canvas'
 
-    document.body.appendChild(renderer.domElement)
+    canvasHost.appendChild(renderer.domElement)
+
+    const hemisphere = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 3)
+    hemisphere.position.set(0.5, 1, 0.25)
+    scene.add(hemisphere)
+
+    const directional = new THREE.DirectionalLight(0xffffff, 1.8)
+    directional.position.set(1, 3, 2)
+    scene.add(directional)
+
+    const controller = renderer.xr.getController(0)
+    scene.add(controller)
 
     const reticle = new THREE.Mesh(
-      new THREE.RingGeometry(
-        0.07,
-        0.095,
-        48
-      ).rotateX(-Math.PI / 2),
+      new THREE.RingGeometry(0.07, 0.1, 48).rotateX(-Math.PI / 2),
       new THREE.MeshBasicMaterial({
-        color: 0x32ff82,
+        color: 0x34ff85,
         side: THREE.DoubleSide,
         transparent: true,
         opacity: 1,
@@ -72,11 +87,11 @@ export default function ReliableARPlacement() {
 
     reticle.matrixAutoUpdate = false
     reticle.visible = false
-    reticle.renderOrder = 9999
+    reticle.renderOrder = 999
     scene.add(reticle)
 
     const centerDot = new THREE.Mesh(
-      new THREE.CircleGeometry(0.016, 32).rotateX(-Math.PI / 2),
+      new THREE.CircleGeometry(0.018, 32).rotateX(-Math.PI / 2),
       new THREE.MeshBasicMaterial({
         color: 0xffffff,
         side: THREE.DoubleSide,
@@ -87,36 +102,40 @@ export default function ReliableARPlacement() {
     centerDot.position.y = 0.001
     reticle.add(centerDot)
 
-    const controller = renderer.xr.getController(0)
-    scene.add(controller)
+    const setError = (message: string, error?: unknown) => {
+      console.error(`[Kivora AR] ${message}`, error ?? '')
+      if (disposed) return
 
-    function normalizeModel(source: THREE.Object3D) {
-      let box = new THREE.Box3().setFromObject(source)
-      const size = new THREE.Vector3()
-      box.getSize(size)
+      setDiagnostic((current) => ({
+        ...current,
+        lastError: message,
+      }))
+      setStatus(message)
+    }
 
-      const horizontalSize = Math.max(size.x, size.z)
-      const factor =
-        horizontalSize > 0
-          ? TARGET_BURGER_WIDTH_METERS / horizontalSize
-          : 1
+    const removePlacedObject = () => {
+      if (placedObject) {
+        scene.remove(placedObject)
+        placedObject = null
+      }
+    }
 
-      source.scale.setScalar(factor)
+    const onSelect = () => {
+      if (!reticle.visible || !modelTemplate) {
+        return
+      }
 
-      box = new THREE.Box3().setFromObject(source)
+      removePlacedObject()
 
-      const center = new THREE.Vector3()
-      box.getCenter(center)
-
-      source.position.x -= center.x
-      source.position.z -= center.z
-      source.position.y -= box.min.y
-
-      const wrapper = new THREE.Group()
-      wrapper.add(source)
+      const model = modelTemplate.clone(true)
+      reticle.matrix.decompose(
+        model.position,
+        model.quaternion,
+        model.scale
+      )
 
       const shadow = new THREE.Mesh(
-        new THREE.CircleGeometry(0.085, 64).rotateX(-Math.PI / 2),
+        new THREE.CircleGeometry(0.09, 64).rotateX(-Math.PI / 2),
         new THREE.MeshBasicMaterial({
           color: 0x000000,
           transparent: true,
@@ -125,288 +144,353 @@ export default function ReliableARPlacement() {
         })
       )
       shadow.position.y = 0.001
-      wrapper.add(shadow)
+      model.add(shadow)
 
-      return wrapper
+      scene.add(model)
+      placedObject = model
+      console.info('[Kivora AR] Hambúrguer posicionado.')
     }
 
-    const loader = new GLTFLoader()
+    controller.addEventListener('select', onSelect)
 
-    loader.load(
-      MODEL_URL,
-      (gltf) => {
+    const localizeButton = () => {
+      if (!arButton) return
+
+      const text = arButton.textContent?.trim().toUpperCase()
+
+      if (text === 'START AR') {
+        arButton.textContent = '📷 Ver na minha mesa'
+      } else if (text === 'STOP AR') {
+        arButton.textContent = '✕ Sair do AR'
+      } else if (text === 'AR NOT SUPPORTED') {
+        arButton.textContent = 'AR não suportado'
+      }
+    }
+
+    const createArButton = () => {
+      if (disposed || arButton) return
+
+      // ARButton r172 adiciona DOM Overlay automaticamente quando nenhum
+      // overlay é fornecido. Para evitar vazamentos no StrictMode e impedir
+      // que o site inteiro apareça sobre a câmera, fornecemos um overlay
+      // mínimo e controlado contendo apenas o botão de saída.
+      overlayRoot = document.createElement('div')
+      overlayRoot.className = 'xr-overlay-root'
+      overlayRoot.style.display = 'none'
+
+      overlayCloseButton = document.createElement('button')
+      overlayCloseButton.type = 'button'
+      overlayCloseButton.className = 'xr-exit-button'
+      overlayCloseButton.textContent = '✕'
+      overlayCloseButton.setAttribute('aria-label', 'Sair da realidade aumentada')
+      overlayCloseButton.addEventListener('click', () => {
+        void renderer.xr.getSession()?.end()
+      })
+
+      overlayRoot.appendChild(overlayCloseButton)
+      document.body.appendChild(overlayRoot)
+
+      arButton = ARButton.createButton(renderer, {
+        requiredFeatures: ['hit-test'],
+        optionalFeatures: ['dom-overlay'],
+        domOverlay: { root: overlayRoot },
+      })
+
+      arButton.classList.add('kivora-ar-button')
+      buttonHost.appendChild(arButton)
+
+      buttonObserver = new MutationObserver(localizeButton)
+      buttonObserver.observe(arButton, {
+        childList: true,
+        characterData: true,
+        subtree: true,
+      })
+
+      localizeButton()
+    }
+
+    let modelReady = false
+    let arSupported = false
+
+    const maybeCreateArButton = () => {
+      if (modelReady && arSupported) {
+        setStatus(
+          'Tudo pronto. Toque em "Ver na minha mesa" e aponte para a superfície.'
+        )
+        createArButton()
+      }
+    }
+
+    void (async () => {
+      try {
+        modelTemplate = await getBurgerModel()
+
         if (disposed) return
 
-        modelTemplate = normalizeModel(
-          gltf.scene.clone(true)
-        )
+        modelReady = true
+        setDiagnostic((current) => ({
+          ...current,
+          model: 'ready',
+        }))
 
-        setStatus(
-          'Modelo carregado. Inicie o AR e procure o círculo verde sobre a mesa.'
-        )
-      },
-      undefined,
-      (error) => {
-        console.error('Falha ao carregar modelo 3D:', error)
+        maybeCreateArButton()
+      } catch (error) {
+        if (disposed) return
 
-        if (!disposed) {
-          setStatus(
-            'O modelo 3D não carregou. Recarregue a página antes de iniciar o AR.'
-          )
-        }
+        setDiagnostic((current) => ({
+          ...current,
+          model: 'error',
+        }))
+        setError('Não foi possível carregar o hambúrguer 3D.', error)
       }
-    )
+    })()
 
-    function placeBurger() {
-      if (!reticle.visible || !modelTemplate) {
-        setStatus(
-          'O círculo verde precisa estar visível antes de posicionar o lanche.'
-        )
+    void (async () => {
+      if (!window.isSecureContext) {
+        setDiagnostic((current) => ({
+          ...current,
+          immersiveAr: 'no',
+          lastError: 'A página não está em contexto seguro (HTTPS).',
+        }))
+        setStatus('AR exige HTTPS. Abra a versão publicada na Vercel.')
         return
       }
 
-      if (placedObject) {
-        scene.remove(placedObject)
-        placedObject = null
+      if (!navigator.xr) {
+        setDiagnostic((current) => ({
+          ...current,
+          immersiveAr: 'no',
+          lastError: 'A API WebXR não está disponível.',
+        }))
+        setStatus('Este navegador não oferece WebXR.')
+        return
       }
 
-      const clone = modelTemplate.clone(true)
+      try {
+        const supported =
+          await navigator.xr.isSessionSupported('immersive-ar')
 
-      reticle.matrix.decompose(
-        clone.position,
-        clone.quaternion,
-        clone.scale
-      )
+        if (disposed) return
 
-      scene.add(clone)
-      placedObject = clone
+        arSupported = supported
 
-      setStatus(
-        'Lanche posicionado. Toque em outro ponto para reposicionar.'
-      )
-    }
+        setDiagnostic((current) => ({
+          ...current,
+          immersiveAr: supported ? 'yes' : 'no',
+        }))
 
-    controller.addEventListener('select', placeBurger)
-
-    const arButton = ARButton.createButton(
-      renderer,
-      {
-        requiredFeatures: ['hit-test'],
-        optionalFeatures: ['dom-overlay'],
-        domOverlay: {
-          root: document.body,
-        },
-      }
-    )
-
-    arButton.textContent = '📷 Ver na minha mesa'
-    arButton.setAttribute(
-      'aria-label',
-      'Ver o hambúrguer na minha mesa'
-    )
-
-    host.appendChild(arButton)
-
-    renderer.xr.addEventListener('sessionstart', () => {
-      setStatus(
-        'AR iniciado. Mova o celular devagar apontando o centro da câmera para a mesa.'
-      )
-    })
-
-    renderer.xr.addEventListener('sessionend', () => {
-      arButton.textContent = '📷 Ver na minha mesa'
-      setStatus(
-        'AR encerrado. Toque no botão para iniciar novamente.'
-      )
-    })
-
-    function requestHitTestIfNeeded(
-      session: XRSession
-    ) {
-      if (hitTestSourceRequested) return
-
-      hitTestSourceRequested = true
-
-      void (async () => {
-        try {
-          const viewerReferenceSpace =
-            await session.requestReferenceSpace('viewer')
-
-          const requestHitTestSource =
-            session.requestHitTestSource?.bind(session)
-
-          if (!requestHitTestSource) {
-            throw new Error(
-              'requestHitTestSource indisponível.'
-            )
-          }
-
-          const source =
-            await requestHitTestSource({
-              space: viewerReferenceSpace,
-            })
-
-          hitTestSource = source ?? null
-
-          if (!hitTestSource) {
-            throw new Error(
-              'O navegador não criou a fonte de Hit Test.'
-            )
-          }
-        } catch (error) {
-          console.error('Erro ao iniciar Hit Test:', error)
-
-          if (!disposed) {
-            setStatus(
-              'A sessão AR abriu, mas o Hit Test não pôde ser iniciado neste navegador.'
-            )
-          }
+        if (!supported) {
+          setStatus('Use um Android/Chrome compatível com ARCore/WebXR.')
+          return
         }
-      })()
 
-      session.addEventListener(
-        'end',
-        () => {
-          hitTestSource?.cancel()
-          hitTestSource = null
-          hitTestSourceRequested = false
-          reticle.visible = false
-          lastReticleVisible = false
-        },
-        { once: true }
-      )
+        maybeCreateArButton()
+      } catch (error) {
+        if (disposed) return
+
+        setError('Falha ao verificar suporte a immersive-ar.', error)
+        setDiagnostic((current) => ({
+          ...current,
+          immersiveAr: 'no',
+        }))
+      }
+    })()
+
+    const onSessionStart = () => {
+      console.info('[Kivora AR] Sessão immersive-ar iniciada.')
+
+      hitTestSource = null
+      hitTestSourceRequested = false
+      hitVisible = false
+      reticle.visible = false
+
+      if (!disposed) {
+        setDiagnostic((current) => ({
+          ...current,
+          session: 'active',
+          hitTest: 'requesting',
+          lastError: null,
+        }))
+      }
     }
 
-    function render(
-      _timestamp: number,
-      frame?: XRFrame
-    ) {
-      if (frame) {
-        const referenceSpace =
-          renderer.xr.getReferenceSpace()
+    const onSessionEnd = () => {
+      console.info('[Kivora AR] Sessão encerrada.')
 
-        const session =
-          renderer.xr.getSession()
+      hitTestSource?.cancel()
+      hitTestSource = null
+      hitTestSourceRequested = false
+      hitVisible = false
+      reticle.visible = false
+      removePlacedObject()
+
+      if (!disposed) {
+        setDiagnostic((current) => ({
+          ...current,
+          session: 'idle',
+          hitTest: 'idle',
+        }))
+
+        setStatus(
+          'AR encerrado. Você pode abrir novamente para repetir o teste.'
+        )
+      }
+    }
+
+    renderer.xr.addEventListener('sessionstart', onSessionStart)
+    renderer.xr.addEventListener('sessionend', onSessionEnd)
+
+    renderer.setAnimationLoop((_timestamp, frame) => {
+      if (frame) {
+        const referenceSpace = renderer.xr.getReferenceSpace()
+        const session = renderer.xr.getSession()
 
         if (referenceSpace && session) {
-          requestHitTestIfNeeded(session)
+          if (!hitTestSourceRequested) {
+            hitTestSourceRequested = true
+
+            void (async () => {
+              try {
+                const viewerSpace =
+                  await session.requestReferenceSpace('viewer')
+
+                const requestHitTestSource =
+                  session.requestHitTestSource?.bind(session)
+
+                if (!requestHitTestSource) {
+                  throw new Error(
+                    'XRSession.requestHitTestSource não está disponível.'
+                  )
+                }
+
+                const source = await requestHitTestSource({
+                  space: viewerSpace,
+                })
+
+                if (!source) {
+                  throw new Error('O navegador não retornou XRHitTestSource.')
+                }
+
+                hitTestSource = source
+
+                if (!disposed) {
+                  setDiagnostic((current) => ({
+                    ...current,
+                    hitTest: 'ready',
+                  }))
+                }
+
+                console.info('[Kivora AR] Hit Test pronto.')
+              } catch (error) {
+                hitTestSource = null
+
+                if (!disposed) {
+                  setDiagnostic((current) => ({
+                    ...current,
+                    hitTest: 'error',
+                  }))
+                }
+
+                setError('A sessão abriu, mas o Hit Test falhou.', error)
+              }
+            })()
+          }
 
           if (hitTestSource) {
-            const hitTestResults =
-              frame.getHitTestResults(
-                hitTestSource
-              )
+            const hitTestResults = frame.getHitTestResults(hitTestSource)
 
             if (hitTestResults.length > 0) {
-              const hit =
-                hitTestResults[0]
-
-              const pose =
-                hit.getPose(referenceSpace)
+              const pose = hitTestResults[0].getPose(referenceSpace)
 
               if (pose) {
                 reticle.visible = true
-                reticle.matrix.fromArray(
-                  pose.transform.matrix
-                )
+                reticle.matrix.fromArray(pose.transform.matrix)
 
-                if (!lastReticleVisible) {
-                  lastReticleVisible = true
+                if (!hitVisible) {
+                  hitVisible = true
+                  console.info('[Kivora AR] Primeiro hit detectado.')
 
-                  setStatus(
-                    'Superfície encontrada. Toque na tela para colocar o lanche.'
-                  )
+                  if (!disposed) {
+                    setDiagnostic((current) => ({
+                      ...current,
+                      hitEverDetected: true,
+                    }))
+                  }
                 }
               }
             } else {
               reticle.visible = false
-
-              if (lastReticleVisible) {
-                lastReticleVisible = false
-
-                setStatus(
-                  'Superfície perdida. Mova o celular lentamente sobre a mesa.'
-                )
-              }
+              hitVisible = false
             }
           }
         }
       }
 
       renderer.render(scene, camera)
-    }
+    })
 
-    renderer.setAnimationLoop(render)
-
-    function handleResize() {
-      camera.aspect =
-        window.innerWidth /
-        window.innerHeight
-
+    const resize = () => {
+      camera.aspect = window.innerWidth / window.innerHeight
       camera.updateProjectionMatrix()
-
-      renderer.setSize(
-        window.innerWidth,
-        window.innerHeight
-      )
+      renderer.setSize(window.innerWidth, window.innerHeight)
     }
 
-    window.addEventListener(
-      'resize',
-      handleResize
-    )
+    window.addEventListener('resize', resize)
 
     return () => {
       disposed = true
 
-      window.removeEventListener(
-        'resize',
-        handleResize
-      )
+      window.removeEventListener('resize', resize)
+      buttonObserver?.disconnect()
+      overlayCloseButton?.replaceWith()
+      overlayCloseButton = null
+      overlayRoot?.remove()
+      overlayRoot = null
 
-      controller.removeEventListener(
-        'select',
-        placeBurger
-      )
+      controller.removeEventListener('select', onSelect)
+      renderer.xr.removeEventListener('sessionstart', onSessionStart)
+      renderer.xr.removeEventListener('sessionend', onSessionEnd)
 
       hitTestSource?.cancel()
       hitTestSource = null
-
-      renderer.setAnimationLoop(null)
 
       const session = renderer.xr.getSession()
       if (session) {
         void session.end()
       }
 
+      renderer.setAnimationLoop(null)
       renderer.dispose()
 
-      if (
-        renderer.domElement.parentNode
-      ) {
-        renderer.domElement.parentNode.removeChild(
-          renderer.domElement
-        )
-      }
+      arButton?.remove()
 
-      if (arButton.parentNode) {
-        arButton.parentNode.removeChild(
-          arButton
-        )
+      if (renderer.domElement.parentNode === canvasHost) {
+        canvasHost.removeChild(renderer.domElement)
       }
     }
   }, [])
 
   return (
     <div className="ar-panel">
-      <div
-        ref={buttonHostRef}
-        className="ar-button-host"
-      />
+      {diagnostic.model === 'loading' && (
+        <button className="ar-placeholder-button" type="button" disabled>
+          Carregando modelo 3D…
+        </button>
+      )}
 
-      <p className="ar-status">
-        {status}
-      </p>
+      {diagnostic.model === 'ready' && diagnostic.immersiveAr === 'no' && (
+        <button className="ar-placeholder-button" type="button" disabled>
+          AR disponível apenas em aparelho compatível
+        </button>
+      )}
+
+      <div ref={buttonHostRef} className="ar-button-host" />
+
+      <p className="ar-status">{status}</p>
+
+      <ARDiagnostics diagnostic={diagnostic} />
+
+      <div ref={canvasHostRef} className="xr-canvas-host" aria-hidden="true" />
     </div>
   )
 }
