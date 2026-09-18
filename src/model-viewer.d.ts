@@ -16,15 +16,12 @@ export type ModelViewerArStatus =
   | 'object-placed'
   | 'failed'
 
-export type ModelViewerArTracking =
-  | 'tracking'
-  | 'not-tracking'
-
 export type ModelViewerElement = HTMLElement & {
   loaded: boolean
   canActivateAR: boolean
   activateAR: () => Promise<void>
   getDimensions: () => ModelDimensions
+  updateFraming: () => void
 }
 
 declare module 'react' {

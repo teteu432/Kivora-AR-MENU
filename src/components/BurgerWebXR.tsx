@@ -1,13 +1,11 @@
 import {
   useCallback,
   useEffect,
-  useMemo,
   useRef,
   useState,
 } from 'react'
 import type {
   ModelViewerArStatus,
-  ModelViewerArTracking,
   ModelViewerElement,
 } from '../model-viewer'
 
@@ -15,27 +13,24 @@ const MODEL_URL =
   'https://cdn.jsdelivr.net/gh/mindset-code/burger-house-3d@c2bddc597efe4870326c843a6e056727752fc261/public/hamburger__food_big-hamburger.glb'
 
 const STORAGE_KEY =
-  'kivora-ar-burger-width-cm'
+  'kivora-ar-burger-width-cm-v082'
 
 const DEFAULT_WIDTH_CM = 13
 
 const PRESETS = [11, 13, 15, 17]
 
 type ArStatusEvent =
-  CustomEvent<{ status: ModelViewerArStatus }>
-
-type ArTrackingEvent =
-  CustomEvent<{ status: ModelViewerArTracking }>
+  CustomEvent<{
+    status: ModelViewerArStatus
+  }>
 
 function readSavedWidth() {
   try {
-    const raw =
+    const value = Number(
       window.localStorage.getItem(
         STORAGE_KEY
       )
-
-    const value =
-      Number(raw)
+    )
 
     if (
       Number.isFinite(value) &&
@@ -45,7 +40,7 @@ function readSavedWidth() {
       return value
     }
   } catch {
-    // localStorage pode estar bloqueado.
+    // localStorage indisponível.
   }
 
   return DEFAULT_WIDTH_CM
@@ -53,10 +48,21 @@ function readSavedWidth() {
 
 export default function BurgerWebXR() {
   const viewerRef =
-    useRef<ModelViewerElement | null>(null)
+    useRef<ModelViewerElement | null>(
+      null
+    )
 
-  const baseHorizontalSizeRef =
+  // CRÍTICO:
+  // esta medida é capturada UMA ÚNICA VEZ,
+  // antes de qualquer scale ser aplicado.
+  const originalHorizontalSizeRef =
     useRef<number | null>(null)
+
+  const widthCmRef =
+    useRef(readSavedWidth())
+
+  const [widthCm, setWidthCm] =
+    useState(widthCmRef.current)
 
   const [modelReady, setModelReady] =
     useState(false)
@@ -73,41 +79,36 @@ export default function BurgerWebXR() {
   const [arActive, setArActive] =
     useState(false)
 
-  const [widthCm, setWidthCm] =
-    useState<number>(() =>
-      readSavedWidth()
-    )
+  const [rawWidthMeters, setRawWidthMeters] =
+    useState<number | null>(null)
 
   const [message, setMessage] =
     useState(
       'Carregando o hambúrguer 3D…'
     )
 
-  const widthMeters =
-    useMemo(
-      () => widthCm / 100,
-      [widthCm]
-    )
-
-  const applyPhysicalScale =
+  const applyScale =
     useCallback(
-      (targetMeters: number) => {
+      (targetWidthCm: number) => {
         const viewer =
           viewerRef.current
 
-        const baseHorizontal =
-          baseHorizontalSizeRef.current
+        const originalWidth =
+          originalHorizontalSizeRef.current
 
         if (
           !viewer ||
-          !baseHorizontal
+          !originalWidth
         ) {
           return
         }
 
+        const targetMeters =
+          targetWidthCm / 100
+
         const factor =
           targetMeters /
-          baseHorizontal
+          originalWidth
 
         const scale =
           `${factor} ${factor} ${factor}`
@@ -117,13 +118,18 @@ export default function BurgerWebXR() {
           scale
         )
 
+        // Quando scale muda após o load, atualizamos
+        // o enquadramento do preview 3D.
+        viewer.updateFraming()
+
         console.info(
-          '[Kivora AR] Escala atualizada:',
+          '[Kivora AR] Escala absoluta aplicada:',
           {
+            originalWidthMeters:
+              originalWidth,
+            targetWidthCm,
             targetMeters,
-            baseHorizontal,
             factor,
-            scale,
           }
         )
       },
@@ -132,87 +138,74 @@ export default function BurgerWebXR() {
 
   const refreshArSupport =
     useCallback(() => {
-      const viewer =
-        viewerRef.current
-
       setCanUseAr(
         Boolean(
-          viewer?.canActivateAR
+          viewerRef.current
+            ?.canActivateAR
         )
       )
     }, [])
 
-  const saveWidth =
-    useCallback(
-      (next: number) => {
-        setWidthCm(next)
-
-        try {
-          window.localStorage.setItem(
-            STORAGE_KEY,
-            String(next)
-          )
-        } catch {
-          // Sem persistência.
-        }
-      },
-      []
-    )
-
-  useEffect(() => {
-    if (
-      modelReady &&
-      baseHorizontalSizeRef.current
-    ) {
-      applyPhysicalScale(
-        widthMeters
-      )
-    }
-  }, [
-    widthMeters,
-    modelReady,
-    applyPhysicalScale,
-  ])
-
+  // Registra listeners UMA ÚNICA VEZ.
+  // Não depende de widthCm/modelReady.
   useEffect(() => {
     const viewer =
       viewerRef.current
 
     if (!viewer) return
 
-    const handleLoad = () => {
+    const prepareModel = () => {
       try {
-        const dimensions =
-          viewer.getDimensions()
+        // Captura a referência original apenas uma vez.
+        if (
+          originalHorizontalSizeRef
+            .current === null
+        ) {
+          const dimensions =
+            viewer.getDimensions()
 
-        const baseHorizontal =
-          Math.max(
-            dimensions.x,
-            dimensions.z
+          const originalWidth =
+            Math.max(
+              dimensions.x,
+              dimensions.z
+            )
+
+          if (
+            !Number.isFinite(
+              originalWidth
+            ) ||
+            originalWidth <= 0
+          ) {
+            throw new Error(
+              'Dimensões originais inválidas.'
+            )
+          }
+
+          originalHorizontalSizeRef
+            .current =
+            originalWidth
+
+          setRawWidthMeters(
+            originalWidth
           )
 
-        if (
-          !Number.isFinite(
-            baseHorizontal
-          ) ||
-          baseHorizontal <= 0
-        ) {
-          throw new Error(
-            'Dimensões inválidas.'
+          console.info(
+            '[Kivora AR] Dimensão original congelada:',
+            {
+              dimensions,
+              originalWidth,
+            }
           )
         }
 
-        baseHorizontalSizeRef.current =
-          baseHorizontal
-
         setModelReady(true)
 
-        applyPhysicalScale(
-          widthCm / 100
+        applyScale(
+          widthCmRef.current
         )
 
         setMessage(
-          `Modelo pronto. Tamanho configurado: ${widthCm.toFixed(1).replace('.', ',')} cm.`
+          `Modelo pronto. Largura alvo: ${widthCmRef.current.toFixed(1).replace('.', ',')} cm.`
         )
 
         requestAnimationFrame(
@@ -221,7 +214,7 @@ export default function BurgerWebXR() {
 
         window.setTimeout(
           refreshArSupport,
-          350
+          400
         )
 
         window.setTimeout(
@@ -235,21 +228,16 @@ export default function BurgerWebXR() {
         )
 
         setMessage(
-          'O modelo carregou, mas não foi possível calcular o tamanho físico.'
+          'Não foi possível preparar a escala física do modelo.'
         )
       }
     }
 
-    const handleModelError = () => {
+    const handleError = () => {
       setModelReady(false)
-      setCanUseAr(false)
 
       setMessage(
         'Não foi possível carregar o hambúrguer 3D.'
-      )
-
-      console.error(
-        '[Kivora AR] Erro ao carregar GLB.'
       )
     }
 
@@ -280,7 +268,7 @@ export default function BurgerWebXR() {
         'object-placed'
       ) {
         setMessage(
-          `Hambúrguer posicionado com largura calibrada em ${widthCm.toFixed(1).replace('.', ',')} cm.`
+          `Objeto posicionado com largura alvo de ${widthCmRef.current.toFixed(1).replace('.', ',')} cm.`
         )
       }
 
@@ -291,7 +279,7 @@ export default function BurgerWebXR() {
         setArActive(false)
 
         setMessage(
-          'Não foi possível abrir o WebXR neste aparelho.'
+          'Não foi possível iniciar o WebXR.'
         )
       }
 
@@ -302,36 +290,20 @@ export default function BurgerWebXR() {
         setOpeningAr(false)
         setArActive(false)
 
-        if (modelReady) {
-          setMessage(
-            `AR encerrado. Calibração atual: ${widthCm.toFixed(1).replace('.', ',')} cm.`
-          )
-        }
+        setMessage(
+          `AR encerrado. Calibração atual: ${widthCmRef.current.toFixed(1).replace('.', ',')} cm.`
+        )
       }
-    }
-
-    const handleArTracking = (
-      event: Event
-    ) => {
-      const status =
-        (event as ArTrackingEvent)
-          .detail
-          .status
-
-      console.info(
-        '[Kivora AR] ar-tracking:',
-        status
-      )
     }
 
     viewer.addEventListener(
       'load',
-      handleLoad
+      prepareModel
     )
 
     viewer.addEventListener(
       'error',
-      handleModelError
+      handleError
     )
 
     viewer.addEventListener(
@@ -339,50 +311,77 @@ export default function BurgerWebXR() {
       handleArStatus
     )
 
-    viewer.addEventListener(
-      'ar-tracking',
-      handleArTracking
-    )
-
     if (viewer.loaded) {
-      handleLoad()
+      prepareModel()
     }
 
     return () => {
       viewer.removeEventListener(
         'load',
-        handleLoad
+        prepareModel
       )
 
       viewer.removeEventListener(
         'error',
-        handleModelError
+        handleError
       )
 
       viewer.removeEventListener(
         'ar-status',
         handleArStatus
       )
-
-      viewer.removeEventListener(
-        'ar-tracking',
-        handleArTracking
-      )
     }
   }, [
-    widthCm,
-    modelReady,
-    applyPhysicalScale,
+    applyScale,
     refreshArSupport,
   ])
+
+  const setCalibration = (
+    value: number
+  ) => {
+    if (arActive) {
+      return
+    }
+
+    const normalized =
+      Math.round(
+        Math.min(
+          22,
+          Math.max(8, value)
+        ) * 2
+      ) / 2
+
+    widthCmRef.current =
+      normalized
+
+    setWidthCm(
+      normalized
+    )
+
+    try {
+      window.localStorage.setItem(
+        STORAGE_KEY,
+        String(normalized)
+      )
+    } catch {
+      // Sem persistência.
+    }
+
+    if (modelReady) {
+      applyScale(
+        normalized
+      )
+
+      setMessage(
+        `Largura atualizada para ${normalized.toFixed(1).replace('.', ',')} cm.`
+      )
+    }
+  }
 
   const openGuide = () => {
     refreshArSupport()
 
     if (!modelReady) {
-      setMessage(
-        'Aguarde o modelo terminar de carregar.'
-      )
       return
     }
 
@@ -395,13 +394,19 @@ export default function BurgerWebXR() {
 
     if (!viewer) return
 
+    // Reaplica a escala absoluta imediatamente
+    // antes de iniciar a sessão.
+    applyScale(
+      widthCmRef.current
+    )
+
     if (
       !viewer.canActivateAR
     ) {
       setCanUseAr(false)
 
       setMessage(
-        'WebXR AR não está disponível neste navegador/aparelho.'
+        'WebXR AR não está disponível neste aparelho.'
       )
 
       return
@@ -423,25 +428,6 @@ export default function BurgerWebXR() {
           'A câmera AR não pôde ser iniciada.'
         )
       })
-  }
-
-  const updateWidth = (
-    next: number
-  ) => {
-    if (arActive) return
-
-    const clamped =
-      Math.min(
-        22,
-        Math.max(8, next)
-      )
-
-    const rounded =
-      Math.round(
-        clamped * 2
-      ) / 2
-
-    saveWidth(rounded)
   }
 
   return (
@@ -486,9 +472,7 @@ export default function BurgerWebXR() {
           type="button"
           className="open-ar-button"
           onClick={openGuide}
-          disabled={
-            !modelReady
-          }
+          disabled={!modelReady}
         >
           📷 Ver na minha mesa
         </button>
@@ -496,25 +480,17 @@ export default function BurgerWebXR() {
         <p className="ar-message">
           {message}
         </p>
-
-        {modelReady &&
-          !canUseAr && (
-            <p className="ar-device-note">
-              No computador isso é esperado. Teste o AR em um Android
-              compatível.
-            </p>
-          )}
       </div>
 
       <aside className="calibration-panel">
         <div className="calibration-heading">
           <div>
             <span className="calibration-kicker">
-              CALIBRAÇÃO
+              CALIBRAÇÃO ESTÁVEL
             </span>
 
             <strong>
-              Tamanho real
+              Largura real
             </strong>
           </div>
 
@@ -537,7 +513,7 @@ export default function BurgerWebXR() {
                     : 'preset'
                 }
                 onClick={() =>
-                  updateWidth(
+                  setCalibration(
                     preset
                   )
                 }
@@ -550,7 +526,7 @@ export default function BurgerWebXR() {
         </div>
 
         <label className="slider-row">
-          <span>8 cm</span>
+          <span>8</span>
 
           <input
             type="range"
@@ -558,29 +534,29 @@ export default function BurgerWebXR() {
             max="22"
             step="0.5"
             value={widthCm}
+            disabled={arActive}
             onChange={(event) =>
-              updateWidth(
+              setCalibration(
                 Number(
                   event.target.value
                 )
               )
             }
-            disabled={arActive}
           />
 
           <span>22 cm</span>
         </label>
 
-        <p className="calibration-help">
-          Meça a maior largura do lanche real e use o mesmo valor aqui.
-          O tamanho fica bloqueado durante o AR.
-        </p>
+        {rawWidthMeters !== null && (
+          <p className="technical-size">
+            Referência original congelada: {rawWidthMeters.toFixed(4)} m
+          </p>
+        )}
       </aside>
 
       {guideOpen && (
         <div
           className="guide-backdrop"
-          role="presentation"
           onClick={() => {
             if (!openingAr) {
               setGuideOpen(false)
@@ -591,64 +567,29 @@ export default function BurgerWebXR() {
             className="camera-guide"
             role="dialog"
             aria-modal="true"
-            aria-labelledby="camera-guide-title"
-            onClick={(event) => {
+            onClick={(event) =>
               event.stopPropagation()
-            }}
+            }
           >
             <button
               type="button"
               className="guide-close"
-              onClick={() => {
+              onClick={() =>
                 setGuideOpen(false)
-              }}
+              }
               disabled={openingAr}
-              aria-label="Fechar"
             >
               ×
             </button>
 
-            <h2 id="camera-guide-title">
-              Tamanho calibrado em {widthCm.toFixed(1).replace('.', ',')} cm
+            <h2>
+              Calibração: {widthCm.toFixed(1).replace('.', ',')} cm
             </h2>
 
             <p className="guide-intro">
-              Agora abra a câmera e compare o lanche com objetos reais da
-              mesa.
+              Esta versão usa sempre a dimensão original do GLB como referência.
+              Alterar o valor não acumula escala.
             </p>
-
-            <div className="guide-step">
-              <span>1</span>
-              <div>
-                <strong>Use uma referência real</strong>
-                <p>
-                  Uma régua ou fita métrica ajuda a confirmar se a largura
-                  visual está correta.
-                </p>
-              </div>
-            </div>
-
-            <div className="guide-step">
-              <span>2</span>
-              <div>
-                <strong>Posicione na mesa</strong>
-                <p>
-                  Aguarde o rastreamento ficar estável antes de avaliar o
-                  tamanho.
-                </p>
-              </div>
-            </div>
-
-            <div className="guide-step">
-              <span>3</span>
-              <div>
-                <strong>Ajuste depois de sair</strong>
-                <p>
-                  Se parecer pequeno ou grande, saia do AR e altere em passos
-                  de 0,5 cm.
-                </p>
-              </div>
-            </div>
 
             <button
               type="button"

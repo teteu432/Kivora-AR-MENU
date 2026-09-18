@@ -1,31 +1,42 @@
-# Kivora AR Menu v0.8.1 — calibração física
+# Kivora AR Menu v0.8.2 — Scale Fix
 
-Esta versão mantém a câmera/WebXR da v0.8.0 e adiciona apenas calibração de
-tamanho físico.
+Esta versão corrige um bug de escala acumulativa da v0.8.1.
 
-## O que mudou
+## O bug
 
-- WebXR continua sendo o único modo AR;
-- `ar-scale="fixed"` continua ativo;
-- o usuário escolhe a largura real do hambúrguer antes de abrir a câmera;
-- presets: 11 cm, 13 cm, 15 cm e 17 cm;
-- slider de 8 a 22 cm, passo de 0,5 cm;
-- escala é calculada a partir das dimensões originais do GLB;
-- tamanho escolhido fica salvo em `localStorage`;
-- controles ficam bloqueados durante uma sessão AR.
+A versão anterior chamava `getDimensions()` novamente depois de alterar
+`scale`.
 
-## Como calibrar
+Como as dimensões da cena podem refletir a transformação aplicada, a nova
+calibração era calculada usando o tamanho já alterado.
 
-1. Meça um hambúrguer real pela maior largura.
-2. Escolha esse valor no painel.
-3. Abra "Ver na minha mesa".
-4. Compare com uma régua/objeto real.
-5. Ajuste em passos de 0,5 cm até ficar visualmente correto.
-6. Depois use esse valor como medida do produto no cadastro.
+Exemplo:
 
-## Modelo
+1. mede modelo;
+2. aplica escala para 15 cm;
+3. mede de novo o modelo já escalado;
+4. trata essa nova medida como se fosse a medida original;
+5. aplica outra escala;
+6. o tamanho explode ou encolhe.
 
-https://cdn.jsdelivr.net/gh/mindset-code/burger-house-3d@c2bddc597efe4870326c843a6e056727752fc261/public/hamburger__food_big-hamburger.glb
+## Correção
+
+Agora:
+
+1. as dimensões originais são capturadas UMA ÚNICA VEZ;
+2. a largura original é congelada em `originalHorizontalSizeRef`;
+3. qualquer valor escolhido é sempre calculado a partir da mesma referência;
+4. mudar de 13 cm para 15 cm significa exatamente uma razão 15/13;
+5. nunca recalculamos a base depois de alterar `scale`;
+6. `updateFraming()` é chamado após atualizar a escala para manter o preview correto.
+
+## AR
+
+O sistema continua usando:
+
+`ar-modes="webxr"`
+
+Nenhuma lógica da câmera foi alterada.
 
 ## Build
 
@@ -37,6 +48,6 @@ npm run typecheck
 npm run build
 ```
 
-A interface deve mostrar:
+Procure:
 
-`PROTÓTIPO AR • v0.8.1`
+`PROTÓTIPO AR • v0.8.2`

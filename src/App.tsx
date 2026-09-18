@@ -26,14 +26,14 @@ function App() {
 
         <div className="product-info">
           <span className="eyebrow">
-            PROTÓTIPO AR • v0.8.1
+            PROTÓTIPO AR • v0.8.2
           </span>
 
           <h1>X-Burguer Especial</h1>
 
           <p className="description">
-            Calibre a largura real do hambúrguer e confira o resultado
-            diretamente na mesa usando WebXR.
+            Calibração física corrigida: qualquer tamanho agora é calculado
+            sempre a partir da dimensão original do modelo 3D.
           </p>
 
           <div className="price">
@@ -48,13 +48,12 @@ function App() {
 
             <div>
               <strong>
-                Escala física configurável
+                Sem escala acumulativa
               </strong>
 
               <p>
-                Nesta versão, o tamanho não é mais apenas uma estimativa fixa.
-                Você pode calibrar o produto em centímetros antes de abrir a
-                câmera.
+                13 cm e 15 cm agora diferem apenas 15,4%, como deveria acontecer
+                no mundo real.
               </p>
             </div>
           </div>
