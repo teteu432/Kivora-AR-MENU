@@ -5,7 +5,6 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 const MODEL_URL =
   'https://modelviewer.dev/shared-assets/models/shishkebab.glb'
 
-// Tamanho alvo aproximado do maior eixo horizontal do alimento: 28 cm.
 const TARGET_HORIZONTAL_SIZE_METERS = 0.28
 
 export default function ARSurfacePlacement() {
@@ -54,8 +53,6 @@ export default function ARSurfacePlacement() {
 
   function createReticle() {
     const geometry = new THREE.RingGeometry(0.055, 0.075, 48)
-
-    // O anel deve ficar deitado sobre uma superfície horizontal.
     geometry.rotateX(-Math.PI / 2)
 
     const material = new THREE.MeshBasicMaterial({
@@ -81,17 +78,14 @@ export default function ARSurfacePlacement() {
 
     const loader = new GLTFLoader()
     const gltf = await loader.loadAsync(MODEL_URL)
-
     const source = gltf.scene
 
-    // Mede o GLB.
     let box = new THREE.Box3().setFromObject(source)
     const size = new THREE.Vector3()
     box.getSize(size)
 
     const horizontalSize = Math.max(size.x, size.z)
 
-    // Ajusta o maior eixo horizontal para ~28 cm no mundo real.
     const factor =
       horizontalSize > 0
         ? TARGET_HORIZONTAL_SIZE_METERS / horizontalSize
@@ -99,13 +93,11 @@ export default function ARSurfacePlacement() {
 
     source.scale.setScalar(factor)
 
-    // Recalcula os limites depois da escala.
     box = new THREE.Box3().setFromObject(source)
 
     const center = new THREE.Vector3()
     box.getCenter(center)
 
-    // Centraliza X/Z e faz a base tocar Y=0.
     source.position.x -= center.x
     source.position.z -= center.z
     source.position.y -= box.min.y
@@ -212,17 +204,12 @@ export default function ARSurfacePlacement() {
       camera.matrixAutoUpdate = false
 
       scene.add(
-        new THREE.HemisphereLight(
-          0xffffff,
-          0x444444,
-          2.4
-        )
+        new THREE.HemisphereLight(0xffffff, 0x444444, 2.4)
       )
 
-      const directionalLight = new THREE.DirectionalLight(
-        0xffffff,
-        2
-      )
+      const directionalLight =
+        new THREE.DirectionalLight(0xffffff, 2)
+
       directionalLight.position.set(1, 3, 2)
       scene.add(directionalLight)
 
@@ -262,7 +249,6 @@ export default function ARSurfacePlacement() {
       const viewerSpace =
         await session.requestReferenceSpace('viewer')
 
-      // @types/webxr trata esta API como opcional.
       const requestHitTestSource =
         session.requestHitTestSource?.bind(session)
 
@@ -272,7 +258,6 @@ export default function ARSurfacePlacement() {
         )
       }
 
-      // Não restringimos entityTypes para melhorar a compatibilidade.
       const hitTestSource =
         await requestHitTestSource({
           space: viewerSpace,
@@ -292,11 +277,7 @@ export default function ARSurfacePlacement() {
         placeObject()
       }
 
-      controller.addEventListener(
-        'select',
-        handleSelect
-      )
-
+      controller.addEventListener('select', handleSelect)
       scene.add(controller)
 
       session.addEventListener(
@@ -357,8 +338,6 @@ export default function ARSurfacePlacement() {
             const matrix =
               pose.transform.matrix
 
-            // Na matriz de pose, o componente Y do eixo normal
-            // fica próximo de ±1 quando a superfície é horizontal.
             const horizontalConfidence =
               Math.abs(matrix[5])
 
@@ -392,8 +371,7 @@ export default function ARSurfacePlacement() {
     } catch (error) {
       console.error(error)
 
-      const activeSession =
-        sessionRef.current
+      const activeSession = sessionRef.current
 
       if (activeSession) {
         try {

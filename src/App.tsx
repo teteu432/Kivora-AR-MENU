@@ -39,7 +39,7 @@ function App() {
         </div>
 
         <div className="product-info">
-          <span className="eyebrow">PROTÓTIPO AR • v0.3</span>
+          <span className="eyebrow">PROTÓTIPO AR • v0.3.1</span>
 
           <h1>Espetinho Especial</h1>
 
@@ -60,7 +60,6 @@ function App() {
 
             <div>
               <strong>Detecção de superfície</strong>
-
               <p>
                 Aponte para a mesa e mova o celular lentamente. Quando o
                 círculo verde aparecer, toque na tela para posicionar o prato.

@@ -1,52 +1,35 @@
-# Kivora AR Menu
+# Kivora AR Menu v0.3.1
 
-Protótipo de cardápio em realidade aumentada com:
+Versão corrigida com dependências compatíveis.
 
-- visualização 3D no navegador;
-- WebXR no celular;
-- Hit Test para detectar superfícies;
-- filtro para superfícies aproximadamente horizontais;
-- marcador verde;
-- toque para posicionar o prato;
-- tamanho físico aproximado do objeto.
+## Correção desta versão
 
-## Instalação
+`@google/model-viewer@4.1.0` usa `three ^0.172.0`.
+
+Por isso o projeto fixa:
+
+- three: 0.172.0
+- @types/three: 0.172.0
+
+## Instalação limpa
+
+Se estiver substituindo uma versão anterior no Windows/Git Bash:
 
 ```bash
+rm -rf node_modules package-lock.json
 npm install
-```
-
-## Desenvolvimento
-
-```bash
-npm run dev
-```
-
-## Build
-
-```bash
 npm run build
 ```
 
-## Teste em AR
+No PowerShell:
 
-Para Realidade Aumentada, publique na Vercel e abra a URL HTTPS no Chrome de um Android compatível com WebXR/ARCore.
+```powershell
+Remove-Item -Recurse -Force node_modules
+Remove-Item -Force package-lock.json
+npm install
+npm run build
+```
 
-Fluxo esperado:
+Depois publique no GitHub/Vercel.
 
-1. Abra o produto.
-2. Toque em "Ver na minha mesa".
-3. Aponte para a mesa.
-4. Mova o aparelho lentamente.
-5. Quando aparecer o círculo verde, toque na tela.
-6. O modelo será colocado naquele ponto.
-
-O protótipo detecta uma superfície horizontal. Ele não classifica semanticamente se o objeto real é especificamente uma mesa.
-
-## Como saber se a Vercel publicou a versão nova
-
-Na tela do produto deve aparecer:
-
-`PROTÓTIPO AR • v0.3`
-
-Se aparecer "PRATO ESPECIAL" ou um botão branco de AR dentro do visualizador 3D, a Vercel ainda está mostrando a versão anterior.
+Na interface deve aparecer `PROTÓTIPO AR • v0.3.1`.

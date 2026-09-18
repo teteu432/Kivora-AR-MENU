@@ -88,7 +88,6 @@ button {
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.8px;
-  backdrop-filter: blur(8px);
 }
 
 .viewer-tip {
@@ -166,11 +165,6 @@ button {
   color: #ffffff;
   font-weight: 850;
   cursor: pointer;
-  box-shadow: 0 12px 35px rgba(37, 99, 235, 0.2);
-}
-
-.ar-launch-button:hover:not(:disabled) {
-  background: #1d4ed8;
 }
 
 .ar-launch-button:disabled {
