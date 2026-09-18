@@ -6,11 +6,12 @@
     BlinkMacSystemFont,
     "Segoe UI",
     sans-serif;
-  color: #fff;
-  background: #080b12;
+  color: #f7f3ec;
+  background: #0b0a08;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 html,

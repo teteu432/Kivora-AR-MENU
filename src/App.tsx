@@ -1,78 +1,212 @@
+import {
+  useMemo,
+  useState,
+} from 'react'
 import './App.css'
-import ProductWebXR from './components/ProductWebXR'
-import { xBurger } from './products'
+import ProductViewer from './components/ProductViewer'
+import {
+  products,
+  type Product3D,
+} from './products'
+
+function money(value: number) {
+  return value
+    .toFixed(2)
+    .replace('.', ',')
+}
 
 function App() {
+  const [selectedId, setSelectedId] =
+    useState(products[0].id)
+
+  const selected =
+    useMemo(
+      () =>
+        products.find(
+          (product) =>
+            product.id ===
+            selectedId
+        ) ?? products[0],
+      [selectedId]
+    )
+
+  const choose =
+    (product: Product3D) => {
+      setSelectedId(product.id)
+    }
+
   return (
     <main className="page">
       <header className="header">
         <div className="brand">
-          <div className="brand-mark">
+          <div className="brand-symbol">
             K
           </div>
 
-          <div className="brand-copy">
+          <div>
             <strong>
               Kivora AR Menu
             </strong>
             <span>
-              Cardápio em Realidade Aumentada
+              Experiência gastronômica em realidade aumentada
             </span>
           </div>
         </div>
+
+        <div className="demo-badge">
+          DEMO AR • v0.9.0
+        </div>
       </header>
 
-      <section className="product">
-        <div className="viewer-card">
-          <span className="viewer-badge">
-            VISUALIZAÇÃO 3D
-          </span>
-
-          <ProductWebXR
-            product={xBurger}
-          />
-        </div>
-
-        <div className="product-info">
-          <span className="eyebrow">
-            PROTÓTIPO AR • v0.8.3
+      <section className="hero">
+        <div className="hero-copy">
+          <span className="hero-kicker">
+            CARDÁPIO IMERSIVO
           </span>
 
           <h1>
-            {xBurger.name}
+            Escolha. Visualize.
+            <br />
+            <em>Veja na sua mesa.</em>
           </h1>
 
-          <p className="description">
-            {xBurger.description}
+          <p>
+            Conheça o tamanho e a apresentação do prato antes mesmo do pedido.
+            Selecione uma opção e experimente em realidade aumentada.
           </p>
+        </div>
 
-          <div className="price">
-            <span>R$</span>
-            <strong>
-              {xBurger.price
-                .toFixed(2)
-                .replace('.', ',')}
-            </strong>
-          </div>
+        <div className="menu-tabs">
+          {products.map(
+            (product) => (
+              <button
+                type="button"
+                key={product.id}
+                className={
+                  selected.id ===
+                  product.id
+                    ? 'menu-tab active'
+                    : 'menu-tab'
+                }
+                onClick={() =>
+                  choose(product)
+                }
+              >
+                <span className="tab-emoji">
+                  {product.emoji}
+                </span>
 
-          <div className="physical-card">
-            <span>↔</span>
+                <span className="tab-copy">
+                  <small>
+                    {product.category}
+                  </small>
 
-            <div>
-              <strong>
-                Tamanho real cadastrado
-              </strong>
+                  <strong>
+                    {product.shortName}
+                  </strong>
+                </span>
 
-              <p>
-                Este produto está configurado
-                com {xBurger.realWidthCm} cm de
-                largura. A escala fica fixa
-                durante o AR.
-              </p>
-            </div>
-          </div>
+                <span className="tab-price">
+                  R$ {money(
+                    product.price
+                  )}
+                </span>
+              </button>
+            )
+          )}
         </div>
       </section>
+
+      <section className="experience">
+        <div className="viewer-column">
+          <ProductViewer
+            key={selected.id}
+            product={selected}
+          />
+        </div>
+
+        <article className="details-card">
+          <div className="category-row">
+            <span>
+              {selected.category}
+            </span>
+
+            <span className="availability">
+              ● Disponível
+            </span>
+          </div>
+
+          <h2>
+            {selected.name}
+          </h2>
+
+          <p className="product-description">
+            {selected.description}
+          </p>
+
+          <div className="meta-row">
+            <div>
+              <small>
+                Tamanho real
+              </small>
+
+              <strong>
+                {selected.realWidthCm} cm
+              </strong>
+            </div>
+
+            <div>
+              <small>
+                Referência
+              </small>
+
+              <strong>
+                {selected.note}
+              </strong>
+            </div>
+          </div>
+
+          <div className="price-row">
+            <div>
+              <span>
+                A partir de
+              </span>
+
+              <strong>
+                R$ {money(
+                  selected.price
+                )}
+              </strong>
+            </div>
+
+            <div className="ar-ready">
+              <span>AR</span>
+              <small>
+                Pronto para visualizar
+              </small>
+            </div>
+          </div>
+
+          <div className="experience-note">
+            <span>✦</span>
+
+            <p>
+              A visualização usa a medida cadastrada do produto e mantém a
+              escala bloqueada durante a experiência AR.
+            </p>
+          </div>
+        </article>
+      </section>
+
+      <footer className="footer">
+        <strong>
+          Kivora AR Menu
+        </strong>
+
+        <span>
+          Protótipo demonstrativo • WebXR
+        </span>
+      </footer>
     </main>
   )
 }

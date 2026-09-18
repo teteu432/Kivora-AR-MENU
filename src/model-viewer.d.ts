@@ -44,7 +44,6 @@ declare module 'react' {
         'environment-image'?: string
         exposure?: string
         scale?: string
-        orientation?: string
         'touch-action'?: string
         loading?: 'auto' | 'lazy' | 'eager'
         style?: CSSProperties
