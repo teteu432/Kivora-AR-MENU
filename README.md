@@ -1,35 +1,35 @@
-# Kivora AR Menu v0.8.0 — WebXR no navegador
+# Kivora AR Menu v0.8.1 — calibração física
 
-Esta versão foi construída para reproduzir o COMPORTAMENTO da câmera mostrado
-no vídeo de referência:
+Esta versão mantém a câmera/WebXR da v0.8.0 e adiciona apenas calibração de
+tamanho físico.
 
-1. usuário toca em `Ver na minha mesa`;
-2. aparece uma orientação rápida;
-3. usuário toca em `Abrir câmera`;
-4. WebXR abre em tela cheia dentro do navegador;
-5. o navegador mostra a câmera real;
-6. o próprio `<model-viewer>` cuida de Hit Test, placement e tracking;
-7. o botão padrão de saída do WebXR fica no canto superior.
+## O que mudou
 
-Não usamos:
-- Scene Viewer;
-- Hit Test escrito manualmente;
-- retículo verde customizado;
-- Three.js customizado para AR.
+- WebXR continua sendo o único modo AR;
+- `ar-scale="fixed"` continua ativo;
+- o usuário escolhe a largura real do hambúrguer antes de abrir a câmera;
+- presets: 11 cm, 13 cm, 15 cm e 17 cm;
+- slider de 8 a 22 cm, passo de 0,5 cm;
+- escala é calculada a partir das dimensões originais do GLB;
+- tamanho escolhido fica salvo em `localStorage`;
+- controles ficam bloqueados durante uma sessão AR.
 
-## AR mode
+## Como calibrar
 
-O projeto usa somente:
+1. Meça um hambúrguer real pela maior largura.
+2. Escolha esse valor no painel.
+3. Abra "Ver na minha mesa".
+4. Compare com uma régua/objeto real.
+5. Ajuste em passos de 0,5 cm até ficar visualmente correto.
+6. Depois use esse valor como medida do produto no cadastro.
 
-```html
-ar-modes="webxr"
-```
+## Modelo
 
-Assim ele não troca para o aplicativo Google Scene Viewer.
+https://cdn.jsdelivr.net/gh/mindset-code/burger-house-3d@c2bddc597efe4870326c843a6e056727752fc261/public/hamburger__food_big-hamburger.glb
 
-## Instalação
+## Build
 
-Extraia em uma PASTA NOVA.
+Use uma pasta nova:
 
 ```bash
 npm install
@@ -37,13 +37,6 @@ npm run typecheck
 npm run build
 ```
 
-A versão correta mostra:
+A interface deve mostrar:
 
-`PROTÓTIPO AR • v0.8.0`
-
-## Modelo 3D
-
-https://cdn.jsdelivr.net/gh/mindset-code/burger-house-3d@c2bddc597efe4870326c843a6e056727752fc261/public/hamburger__food_big-hamburger.glb
-
-Para uso comercial, substitua por um modelo cuja licença individual esteja
-documentada ou por um GLB próprio do restaurante.
+`PROTÓTIPO AR • v0.8.1`

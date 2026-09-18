@@ -26,14 +26,14 @@ function App() {
 
         <div className="product-info">
           <span className="eyebrow">
-            PROTÓTIPO AR • v0.8.0
+            PROTÓTIPO AR • v0.8.1
           </span>
 
           <h1>X-Burguer Especial</h1>
 
           <p className="description">
-            Visualize o hambúrguer em 3D e abra a realidade aumentada
-            diretamente no navegador.
+            Calibre a largura real do hambúrguer e confira o resultado
+            diretamente na mesa usando WebXR.
           </p>
 
           <div className="price">
@@ -43,18 +43,18 @@ function App() {
 
           <div className="webxr-info">
             <span className="webxr-info-icon">
-              ◎
+              ↔
             </span>
 
             <div>
               <strong>
-                AR direto no navegador
+                Escala física configurável
               </strong>
 
               <p>
-                Não abrimos outro aplicativo. A experiência usa WebXR em tela
-                cheia, e o próprio model-viewer cuida do posicionamento e do
-                rastreamento da superfície.
+                Nesta versão, o tamanho não é mais apenas uma estimativa fixa.
+                Você pode calibrar o produto em centímetros antes de abrir a
+                câmera.
               </p>
             </div>
           </div>

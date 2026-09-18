@@ -2,7 +2,8 @@
   box-sizing: border-box;
 }
 
-button {
+button,
+input {
   font: inherit;
 }
 
@@ -66,20 +67,20 @@ button {
 
 .viewer-card {
   position: relative;
-  height: 570px;
+  min-height: 650px;
   overflow: visible;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 28px;
   background:
-    radial-gradient(circle at center, #252d3b 0%, #131923 48%, #0c1017 100%);
+    radial-gradient(circle at center top, #252d3b 0%, #131923 40%, #0c1017 100%);
   box-shadow: 0 30px 90px rgba(0, 0, 0, 0.32);
 }
 
 .viewer-shell {
   position: absolute;
-  inset: 0;
+  inset: 0 0 160px;
   overflow: hidden;
-  border-radius: 28px;
+  border-radius: 28px 28px 0 0;
 }
 
 .viewer-shell model-viewer {
@@ -127,11 +128,10 @@ button {
   z-index: 4;
   left: 22px;
   right: 22px;
-  bottom: 20px;
+  bottom: 174px;
   display: flex;
   flex-direction: column;
-  align-items: stretch;
-  gap: 7px;
+  gap: 6px;
   pointer-events: none;
 }
 
@@ -157,15 +157,109 @@ button {
 .ar-message,
 .ar-device-note {
   align-self: flex-end;
-  max-width: 350px;
+  max-width: 390px;
   margin: 0;
-  padding: 6px 9px;
+  padding: 5px 8px;
   border-radius: 8px;
   color: #9ca6b6;
   background: rgba(8, 11, 18, 0.72);
   font-size: 10px;
   line-height: 1.4;
   text-align: right;
+}
+
+.calibration-panel {
+  position: absolute;
+  z-index: 5;
+  right: 16px;
+  bottom: 14px;
+  left: 16px;
+  min-height: 132px;
+  padding: 15px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  background: rgba(10, 14, 21, 0.94);
+}
+
+.calibration-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.calibration-heading > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.calibration-kicker {
+  color: #628fff;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 1.3px;
+}
+
+.calibration-heading strong {
+  font-size: 13px;
+}
+
+.calibration-heading output {
+  color: #ffffff;
+  font-size: 21px;
+  font-weight: 900;
+}
+
+.preset-row {
+  display: flex;
+  gap: 7px;
+  margin-top: 11px;
+}
+
+.preset {
+  flex: 1;
+  min-height: 32px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.035);
+  color: #aeb7c6;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.preset.active {
+  border-color: #4f7dff;
+  background: rgba(37, 99, 235, 0.16);
+  color: #ffffff;
+}
+
+.preset:disabled,
+.slider-row input:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.slider-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  color: #687386;
+  font-size: 9px;
+}
+
+.slider-row input {
+  width: 100%;
+  accent-color: #4f7dff;
+}
+
+.calibration-help {
+  margin: 8px 0 0;
+  color: #6f7a8c;
+  font-size: 9px;
+  line-height: 1.4;
 }
 
 .product-info {
@@ -356,7 +450,7 @@ button {
   }
 
   .viewer-card {
-    height: 450px;
+    min-height: 650px;
   }
 
   .product-info h1 {
@@ -370,18 +464,19 @@ button {
   }
 
   .viewer-card {
-    height: 420px;
+    min-height: 625px;
     border-radius: 20px;
   }
 
   .viewer-shell {
-    border-radius: 20px;
+    inset: 0 0 190px;
+    border-radius: 20px 20px 0 0;
   }
 
   .ar-controls {
     left: 14px;
     right: 14px;
-    bottom: 14px;
+    bottom: 202px;
   }
 
   .open-ar-button {
@@ -392,6 +487,18 @@ button {
   .ar-message,
   .ar-device-note {
     display: none;
+  }
+
+  .calibration-panel {
+    right: 10px;
+    bottom: 10px;
+    left: 10px;
+    min-height: 174px;
+  }
+
+  .preset-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
   }
 
   .product-info h1 {
