@@ -19,44 +19,25 @@ export default function BurgerARViewer() {
 
     try {
       const dimensions = element.getDimensions()
+      const horizontalSize = Math.max(dimensions.x, dimensions.z)
 
-      const horizontalSize =
-        Math.max(dimensions.x, dimensions.z)
-
-      if (
-        !Number.isFinite(horizontalSize) ||
-        horizontalSize <= 0
-      ) {
-        throw new Error(
-          'O modelo retornou dimensões inválidas.'
-        )
+      if (!Number.isFinite(horizontalSize) || horizontalSize <= 0) {
+        throw new Error('Dimensões inválidas no modelo 3D.')
       }
 
-      const factor =
-        TARGET_WIDTH_METERS / horizontalSize
-
-      const scale =
-        `${factor} ${factor} ${factor}`
+      const factor = TARGET_WIDTH_METERS / horizontalSize
+      const scale = `${factor} ${factor} ${factor}`
 
       element.setAttribute('scale', scale)
-
       setScaleReady(true)
 
-      console.info(
-        '[Kivora AR] Dimensões originais:',
+      console.info('[Kivora AR] Escala física aplicada:', {
         dimensions,
-        'Escala aplicada:',
-        scale
-      )
+        scale,
+      })
     } catch (cause) {
-      console.error(
-        '[Kivora AR] Falha ao normalizar escala:',
-        cause
-      )
-
-      setError(
-        'O modelo carregou, mas não foi possível ajustar o tamanho físico.'
-      )
+      console.error('[Kivora AR] Erro ao ajustar escala:', cause)
+      setError('Não foi possível ajustar o tamanho físico do hambúrguer.')
     }
   }, [])
 
@@ -71,14 +52,10 @@ export default function BurgerARViewer() {
     }
 
     const handleError = () => {
-      console.error(
-        '[Kivora AR] Falha ao carregar o GLB.'
-      )
-
+      console.error('[Kivora AR] Falha ao carregar o GLB.')
       setModelReady(false)
-      setError(
-        'Não foi possível carregar o hambúrguer 3D.'
-      )
+      setScaleReady(false)
+      setError('Não foi possível carregar o hambúrguer 3D.')
     }
 
     element.addEventListener('load', handleLoad)
@@ -89,15 +66,8 @@ export default function BurgerARViewer() {
     }
 
     return () => {
-      element.removeEventListener(
-        'load',
-        handleLoad
-      )
-
-      element.removeEventListener(
-        'error',
-        handleError
-      )
+      element.removeEventListener('load', handleLoad)
+      element.removeEventListener('error', handleError)
     }
   }, [normalizePhysicalScale])
 
@@ -105,8 +75,7 @@ export default function BurgerARViewer() {
     <div className="viewer-shell">
       <model-viewer
         ref={(node) => {
-          modelRef.current =
-            node as ModelViewerElement | null
+          modelRef.current = node as ModelViewerElement | null
         }}
         src={MODEL_URL}
         alt="X-Burguer em 3D"
@@ -146,12 +115,6 @@ export default function BurgerARViewer() {
       {error && (
         <div className="viewer-state viewer-error">
           {error}
-        </div>
-      )}
-
-      {modelReady && !scaleReady && !error && (
-        <div className="viewer-state">
-          Ajustando tamanho real…
         </div>
       )}
     </div>

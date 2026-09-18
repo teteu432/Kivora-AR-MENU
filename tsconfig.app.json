@@ -17,5 +17,8 @@
     "noEmit": true,
     "jsx": "react-jsx"
   },
-  "include": ["src"]
+  "files": [
+    "src/main.tsx",
+    "src/model-viewer.d.ts"
+  ]
 }

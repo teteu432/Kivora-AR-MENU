@@ -27,13 +27,13 @@ function App() {
         </div>
 
         <div className="product-info">
-          <span className="eyebrow">PROTÓTIPO AR • v0.7.0</span>
+          <span className="eyebrow">PROTÓTIPO AR • v0.7.1</span>
 
           <h1>X-Burguer Especial</h1>
 
           <p className="description">
-            A experiência de realidade aumentada agora usa o mecanismo nativo
-            de AR do aparelho para detectar a superfície e posicionar o lanche.
+            Visualize o hambúrguer em 3D e use o AR nativo do aparelho para
+            posicioná-lo sobre uma superfície real.
           </p>
 
           <div className="price">
@@ -45,12 +45,11 @@ function App() {
             <span className="native-info-icon">◎</span>
 
             <div>
-              <strong>AR nativo no Android</strong>
+              <strong>Google Scene Viewer / ARCore</strong>
 
               <p>
-                Aponte o celular para a mesa e mova-o lentamente. O próprio
-                ARCore orienta a detecção e o posicionamento. A escala do
-                hambúrguer fica bloqueada para manter o tamanho planejado.
+                No Android compatível, o sistema nativo cuida da detecção,
+                posicionamento e rastreamento do produto.
               </p>
             </div>
           </div>

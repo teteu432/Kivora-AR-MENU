@@ -1,66 +1,47 @@
-# Kivora AR Menu v0.7.0 — AR nativo
+# Kivora AR Menu v0.7.1
 
-Esta versão remove a implementação customizada de WebXR Hit Test.
+Esta versão usa apenas:
 
-No Android, o projeto prioriza **Google Scene Viewer / ARCore** através do
-`<model-viewer>`.
+- React
+- TypeScript
+- Vite
+- @google/model-viewer
+- Google Scene Viewer / ARCore no Android
 
-## Por que mudou
+A implementação WebXR customizada foi removida.
 
-A implementação WebXR própria funcionava, mas apresentava:
+## IMPORTANTE
 
-- retículo grande sobre o produto;
-- rastreamento visual instável;
-- posicionamento pouco natural;
-- muito código para ciclo de vida XR;
-- mais pontos de falha.
+Não copie este ZIP por cima da pasta antiga.
 
-O Scene Viewer já possui UX nativa para:
+O caminho mais seguro é:
 
-- procurar superfície;
-- posicionar;
-- rastrear;
-- mover objeto;
-- controlar escala.
+1. renomear a pasta antiga;
+2. extrair este ZIP em uma pasta NOVA e vazia;
+3. executar npm install;
+4. executar npm run build.
 
-## AR
+Se quiser continuar usando a pasta antiga, execute também:
 
-Configuração:
+`CLEAN_OLD_FILES.bat`
 
-```html
-ar
-ar-modes="scene-viewer webxr quick-look"
-ar-placement="floor"
-ar-scale="fixed"
-```
+Ele remove os arquivos WebXR obsoletos.
 
-A ordem prioriza Scene Viewer no Android.
+## Proteção extra
 
-## Escala
+O `tsconfig.app.json` desta versão usa `files` em vez de incluir todo `src`.
 
-Ao carregar o GLB, o código mede o modelo com `getDimensions()` e ajusta
-automaticamente `scale` para que o maior eixo horizontal fique em cerca de
-15 cm.
+Isso significa que arquivos antigos esquecidos na pasta não serão compilados
+se não fizerem parte da aplicação atual.
 
-Isso evita depender de um número de escala arbitrário.
-
-## Modelo
-
-`https://cdn.jsdelivr.net/gh/mindset-code/burger-house-3d@c2bddc597efe4870326c843a6e056727752fc261/public/hamburger__food_big-hamburger.glb`
-
-Antes de uso comercial, confirme a licença individual/atribuição do asset
-ou substitua por um modelo próprio/licenciado do restaurante.
-
-## Instalação limpa
+## Comandos
 
 ```bash
-rm -rf node_modules
-rm -f package-lock.json
 npm install
 npm run typecheck
 npm run build
 ```
 
-Na tela deve aparecer:
+A interface deve mostrar:
 
-`PROTÓTIPO AR • v0.7.0`
+`PROTÓTIPO AR • v0.7.1`
