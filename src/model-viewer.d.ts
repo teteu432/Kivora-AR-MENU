@@ -16,6 +16,8 @@ declare module 'react' {
         'camera-controls'?: boolean
         'auto-rotate'?: boolean
         'shadow-intensity'?: string
+        'shadow-softness'?: string
+        exposure?: string
         'touch-action'?: string
         loading?: 'auto' | 'lazy' | 'eager'
         style?: CSSProperties

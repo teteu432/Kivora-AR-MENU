@@ -1,8 +1,8 @@
 import './App.css'
-import ARSurfacePlacement from './components/ARSurfacePlacement'
+import ReliableARPlacement from './components/ReliableARPlacement'
 
 const BURGER_MODEL_URL =
-  'https://cdn.3dassets.dev/assets/34314/v1/model.glb'
+  'https://cdn.jsdelivr.net/gh/mindset-code/burger-house-3d@c2bddc597efe4870326c843a6e056727752fc261/public/hamburger__food_big-hamburger.glb'
 
 function App() {
   return (
@@ -24,10 +24,12 @@ function App() {
 
           <model-viewer
             src={BURGER_MODEL_URL}
-            alt="Combo 3D com x-burguer e batata"
+            alt="Hambúrguer 3D"
             camera-controls
             auto-rotate
-            shadow-intensity="1"
+            shadow-intensity="1.2"
+            shadow-softness="0.9"
+            exposure="1.05"
             touch-action="pan-y"
             loading="eager"
             style={{
@@ -42,13 +44,13 @@ function App() {
         </div>
 
         <div className="product-info">
-          <span className="eyebrow">PROTÓTIPO AR • v0.4.1</span>
+          <span className="eyebrow">PROTÓTIPO AR • v0.5.0</span>
 
           <h1>X-Burguer Especial</h1>
 
           <p className="description">
-            Visualize o lanche em 3D e posicione-o sobre a mesa usando
-            realidade aumentada com detecção estabilizada de superfície.
+            Aponte o celular para a mesa, espere o círculo verde aparecer e
+            toque para posicionar o lanche no ambiente.
           </p>
 
           <div className="price">
@@ -56,17 +58,17 @@ function App() {
             <strong>29,90</strong>
           </div>
 
-          <ARSurfacePlacement />
+          <ReliableARPlacement />
 
           <div className="instructions-card">
             <div className="instructions-icon">◎</div>
 
             <div>
-              <strong>Detecção aprimorada</strong>
+              <strong>Posicionamento simplificado</strong>
               <p>
-                Amarelo significa que a superfície está sendo analisada.
-                Verde significa que o ponto está estável e pronto para receber
-                o lanche.
+                Nesta versão, qualquer superfície encontrada pelo Hit Test
+                exibe imediatamente o marcador. Primeiro vamos garantir uma
+                detecção confiável; depois refinamos a identificação de mesa.
               </p>
             </div>
           </div>
