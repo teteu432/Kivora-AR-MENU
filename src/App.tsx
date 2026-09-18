@@ -18,17 +18,23 @@ function App() {
         <div className="viewer-container">
           <span className="badge">Visualização 3D</span>
 
-  <model-viewer
-  src="https://modelviewer.dev/shared-assets/models/shishkebab.glb"
-  alt="Modelo 3D de um prato"
-  ar
-  ar-modes="webxr scene-viewer quick-look"
-  camera-controls
-  auto-rotate
-  shadow-intensity="1"
-  ar-placement="floor"
-  ar-scale="fixed"
-  scale="0.2 0.2 0.2"
+          <model-viewer
+            src="https://modelviewer.dev/shared-assets/models/shishkebab.glb"
+            alt="Modelo 3D de um prato"
+            ar
+            ar-modes="webxr scene-viewer quick-look"
+            camera-controls
+            auto-rotate
+            shadow-intensity="1"
+            ar-placement="floor"
+            ar-scale="fixed"
+            scale="0.2 0.2 0.2"
+            touch-action="pan-y"
+            loading="eager"
+            style={{
+              width: '100%',
+              height: '100%',
+            }}
           >
             <button slot="ar-button" className="ar-button">
               📷 Ver na minha mesa
@@ -42,7 +48,6 @@ function App() {
 
         <div className="product-info">
           <span className="category">PRATO ESPECIAL</span>
-
           <h1>Espetinho Especial</h1>
 
           <p className="description">
@@ -70,10 +75,9 @@ function App() {
 
             <div>
               <strong>Visualize antes de pedir</strong>
-
               <p>
                 No celular, toque em &quot;Ver na minha mesa&quot; para
-                visualizar o prato em tamanho real usando realidade aumentada.
+                visualizar o prato usando realidade aumentada.
               </p>
             </div>
           </div>

@@ -2,22 +2,25 @@
 
 Protótipo de cardápio 3D com suporte a Realidade Aumentada.
 
-## Rodar o projeto
+## Rodar
 
 ```bash
 npm install
 npm run dev
 ```
 
-Para acessar pelo celular na mesma rede:
+## Build
+
+```bash
+npm run build
+```
+
+## Testar no celular
+
+Para acesso local:
 
 ```bash
 npm run dev -- --host
 ```
 
-Abra no celular o endereço `Network` exibido pelo Vite.
-
-## Observação sobre AR
-
-A visualização 3D funciona no computador.
-A experiência completa de realidade aumentada deve ser testada em um celular compatível.
+Para testar AR de forma confiável, publique na Vercel e abra a URL HTTPS no celular.

@@ -20,6 +20,7 @@ declare module 'react' {
         'shadow-intensity'?: string
         'ar-placement'?: 'floor' | 'wall'
         'ar-scale'?: 'auto' | 'fixed'
+        scale?: string
         'touch-action'?: string
         loading?: 'auto' | 'lazy' | 'eager'
         style?: CSSProperties
