@@ -1,28 +1,28 @@
-# Kivora AR Menu v0.3.1
+# Kivora AR Menu v0.4.0
 
-Versão corrigida com dependências compatíveis.
+Versão com detecção de superfície mais estável e troca para X-Burguer.
 
-## Correção desta versão
+## Melhorias desta versão
 
-`@google/model-viewer@4.1.0` usa `three ^0.172.0`.
-
-Por isso o projeto fixa:
-
-- three: 0.172.0
-- @types/three: 0.172.0
+- modelo principal de hambúrguer;
+- fallback automático para o modelo anterior se a URL do hambúrguer falhar;
+- retículo amarelo ao encontrar pontos preliminares;
+- retículo verde apenas quando a superfície estiver estável;
+- suavização do marcador;
+- exigência de vários frames estáveis antes de liberar o posicionamento;
+- filtro menos rígido para facilitar a detecção.
 
 ## Instalação limpa
 
-Se estiver substituindo uma versão anterior no Windows/Git Bash:
-
+Git Bash:
 ```bash
-rm -rf node_modules package-lock.json
+rm -rf node_modules
+rm -f package-lock.json
 npm install
 npm run build
 ```
 
-No PowerShell:
-
+PowerShell:
 ```powershell
 Remove-Item -Recurse -Force node_modules
 Remove-Item -Force package-lock.json
@@ -32,4 +32,4 @@ npm run build
 
 Depois publique no GitHub/Vercel.
 
-Na interface deve aparecer `PROTÓTIPO AR • v0.3.1`.
+Na interface deve aparecer `PROTÓTIPO AR • v0.4.0`.

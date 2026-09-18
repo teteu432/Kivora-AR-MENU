@@ -1,6 +1,9 @@
 import './App.css'
 import ARSurfacePlacement from './components/ARSurfacePlacement'
 
+const BURGER_MODEL_URL =
+  'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/Hamburger/glTF-Binary/Hamburger.glb'
+
 function App() {
   return (
     <main className="page">
@@ -20,8 +23,8 @@ function App() {
           <span className="viewer-badge">VISUALIZAÇÃO 3D</span>
 
           <model-viewer
-            src="https://modelviewer.dev/shared-assets/models/shishkebab.glb"
-            alt="Modelo 3D de um espetinho"
+            src={BURGER_MODEL_URL}
+            alt="Modelo 3D de um x-burguer"
             camera-controls
             auto-rotate
             shadow-intensity="1"
@@ -39,18 +42,18 @@ function App() {
         </div>
 
         <div className="product-info">
-          <span className="eyebrow">PROTÓTIPO AR • v0.3.1</span>
+          <span className="eyebrow">PROTÓTIPO AR • v0.4.0</span>
 
-          <h1>Espetinho Especial</h1>
+          <h1>X-Burguer Especial</h1>
 
           <p className="description">
-            Visualize o produto em 3D e depois posicione-o em uma superfície
-            real usando a câmera do celular.
+            Visualize o hambúrguer em 3D e depois posicione-o em uma superfície
+            real usando a câmera do celular com detecção estabilizada.
           </p>
 
           <div className="price">
             <span>R$</span>
-            <strong>34,90</strong>
+            <strong>29,90</strong>
           </div>
 
           <ARSurfacePlacement />
@@ -59,10 +62,11 @@ function App() {
             <div className="instructions-icon">◎</div>
 
             <div>
-              <strong>Detecção de superfície</strong>
+              <strong>Detecção aprimorada</strong>
               <p>
-                Aponte para a mesa e mova o celular lentamente. Quando o
-                círculo verde aparecer, toque na tela para posicionar o prato.
+                O marcador amarelo indica leitura inicial da superfície. O
+                marcador verde indica que a superfície está estável e pronta
+                para posicionar o x-burguer.
               </p>
             </div>
           </div>

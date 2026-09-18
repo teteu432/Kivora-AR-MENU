@@ -2,25 +2,41 @@ import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 
-const MODEL_URL =
+const PRIMARY_MODEL_URL =
+  'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/Hamburger/glTF-Binary/Hamburger.glb'
+
+const FALLBACK_MODEL_URL =
   'https://modelviewer.dev/shared-assets/models/shishkebab.glb'
 
-const TARGET_HORIZONTAL_SIZE_METERS = 0.28
+const TARGET_HORIZONTAL_SIZE_METERS = 0.16
+const HORIZONTAL_THRESHOLD = 0.58
+const STABLE_FRAMES_REQUIRED = 7
+const MAX_POSITION_DELTA = 0.05
+const SMOOTHING_FACTOR = 0.35
+
+type ReticleStage = 'searching' | 'candidate' | 'ready'
 
 export default function ARSurfacePlacement() {
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null)
   const sceneRef = useRef<THREE.Scene | null>(null)
   const reticleRef = useRef<THREE.Mesh | null>(null)
+  const reticleMaterialRef = useRef<THREE.MeshBasicMaterial | null>(null)
   const modelTemplateRef = useRef<THREE.Group | null>(null)
   const hitTestSourceRef = useRef<XRHitTestSource | null>(null)
   const referenceSpaceRef = useRef<XRReferenceSpace | null>(null)
   const sessionRef = useRef<XRSession | null>(null)
   const placedObjectRef = useRef<THREE.Object3D | null>(null)
 
+  const smoothedPositionRef = useRef<THREE.Vector3 | null>(null)
+  const smoothedQuaternionRef = useRef<THREE.Quaternion | null>(null)
+  const lastStableRawPositionRef = useRef<THREE.Vector3 | null>(null)
+  const stableFramesRef = useRef(0)
+  const reticleStageRef = useRef<ReticleStage>('searching')
+
   const [supported, setSupported] = useState<boolean | null>(null)
   const [loading, setLoading] = useState(false)
   const [status, setStatus] = useState(
-    'Aponte para uma mesa e mova o celular lentamente.'
+    'Aponte para a mesa e mova o celular lentamente.'
   )
 
   useEffect(() => {
@@ -51,8 +67,23 @@ export default function ARSurfacePlacement() {
     }
   }, [])
 
+  function setReticleStage(stage: ReticleStage) {
+    reticleStageRef.current = stage
+
+    const material = reticleMaterialRef.current
+    if (!material) return
+
+    if (stage === 'ready') {
+      material.color.setHex(0x3dff91)
+    } else if (stage === 'candidate') {
+      material.color.setHex(0xffd44d)
+    } else {
+      material.color.setHex(0x3dff91)
+    }
+  }
+
   function createReticle() {
-    const geometry = new THREE.RingGeometry(0.055, 0.075, 48)
+    const geometry = new THREE.RingGeometry(0.05, 0.07, 48)
     geometry.rotateX(-Math.PI / 2)
 
     const material = new THREE.MeshBasicMaterial({
@@ -63,6 +94,8 @@ export default function ARSurfacePlacement() {
       depthTest: false,
     })
 
+    reticleMaterialRef.current = material
+
     const reticle = new THREE.Mesh(geometry, material)
     reticle.matrixAutoUpdate = false
     reticle.visible = false
@@ -71,13 +104,24 @@ export default function ARSurfacePlacement() {
     return reticle
   }
 
+  async function loadModelFromUrl(url: string) {
+    const loader = new GLTFLoader()
+    return loader.loadAsync(url)
+  }
+
   async function loadModel() {
     if (modelTemplateRef.current) {
       return modelTemplateRef.current
     }
 
-    const loader = new GLTFLoader()
-    const gltf = await loader.loadAsync(MODEL_URL)
+    let gltf
+
+    try {
+      gltf = await loadModelFromUrl(PRIMARY_MODEL_URL)
+    } catch {
+      gltf = await loadModelFromUrl(FALLBACK_MODEL_URL)
+    }
+
     const source = gltf.scene
 
     let box = new THREE.Box3().setFromObject(source)
@@ -126,7 +170,14 @@ export default function ARSurfacePlacement() {
     const reticle = reticleRef.current
     const template = modelTemplateRef.current
 
-    if (!scene || !reticle || !template || !reticle.visible) {
+    if (
+      !scene ||
+      !reticle ||
+      !template ||
+      !reticle.visible ||
+      reticleStageRef.current !== 'ready'
+    ) {
+      setStatus('Continue escaneando até o marcador ficar verde.')
       return
     }
 
@@ -147,7 +198,7 @@ export default function ARSurfacePlacement() {
     placedObjectRef.current = placed
 
     setStatus(
-      'Prato posicionado. Toque em outro ponto válido para movê-lo.'
+      'X-burguer posicionado. Toque em outro ponto verde para movê-lo.'
     )
   }
 
@@ -174,10 +225,14 @@ export default function ARSurfacePlacement() {
 
     sceneRef.current = null
     reticleRef.current = null
+    reticleMaterialRef.current = null
+    smoothedPositionRef.current = null
+    smoothedQuaternionRef.current = null
+    lastStableRawPositionRef.current = null
+    stableFramesRef.current = 0
+    reticleStageRef.current = 'searching'
 
-    setStatus(
-      'Aponte para uma mesa e mova o celular lentamente.'
-    )
+    setStatus('Aponte para a mesa e mova o celular lentamente.')
   }
 
   async function startAR() {
@@ -293,9 +348,7 @@ export default function ARSurfacePlacement() {
         { once: true }
       )
 
-      setStatus(
-        'Procurando uma superfície horizontal…'
-      )
+      setStatus('Escaneando a superfície…')
 
       renderer.setAnimationLoop(
         (_time, frame) => {
@@ -327,41 +380,112 @@ export default function ARSurfacePlacement() {
               currentHitTestSource
             )
 
-          let horizontalPose: XRPose | null = null
-
-          for (const hit of hitResults) {
-            const pose =
-              hit.getPose(currentReferenceSpace)
-
-            if (!pose) continue
-
-            const matrix =
-              pose.transform.matrix
-
-            const horizontalConfidence =
-              Math.abs(matrix[5])
-
-            if (horizontalConfidence >= 0.8) {
-              horizontalPose = pose
-              break
-            }
+          if (hitResults.length === 0) {
+            currentReticle.visible = false
+            stableFramesRef.current = 0
+            lastStableRawPositionRef.current = null
+            setReticleStage('searching')
+            setStatus('Mova o celular lentamente sobre a mesa…')
+            renderer.render(scene, camera)
+            return
           }
 
-          if (horizontalPose) {
-            currentReticle.visible = true
+          const chosenHit = hitResults[0]
+          const pose = chosenHit.getPose(currentReferenceSpace)
 
-            currentReticle.matrix.fromArray(
-              horizontalPose.transform.matrix
+          if (!pose) {
+            currentReticle.visible = false
+            stableFramesRef.current = 0
+            lastStableRawPositionRef.current = null
+            setReticleStage('searching')
+            renderer.render(scene, camera)
+            return
+          }
+
+          const matrix = pose.transform.matrix
+          const horizontalConfidence = Math.abs(matrix[5])
+
+          const rawPosition = new THREE.Vector3(
+            matrix[12],
+            matrix[13],
+            matrix[14]
+          )
+
+          const rawMatrix = new THREE.Matrix4().fromArray(matrix)
+          const rawQuaternion = new THREE.Quaternion()
+          const throwawayScale = new THREE.Vector3()
+          rawMatrix.decompose(
+            new THREE.Vector3(),
+            rawQuaternion,
+            throwawayScale
+          )
+
+          if (!smoothedPositionRef.current) {
+            smoothedPositionRef.current = rawPosition.clone()
+          } else {
+            smoothedPositionRef.current.lerp(
+              rawPosition,
+              SMOOTHING_FACTOR
             )
+          }
 
+          if (!smoothedQuaternionRef.current) {
+            smoothedQuaternionRef.current = rawQuaternion.clone()
+          } else {
+            smoothedQuaternionRef.current.slerp(
+              rawQuaternion,
+              SMOOTHING_FACTOR
+            )
+          }
+
+          let stage: ReticleStage = 'candidate'
+
+          if (horizontalConfidence >= HORIZONTAL_THRESHOLD) {
+            const lastStable = lastStableRawPositionRef.current
+
+            if (lastStable) {
+              const delta = rawPosition.distanceTo(lastStable)
+
+              if (delta <= MAX_POSITION_DELTA) {
+                stableFramesRef.current += 1
+              } else {
+                stableFramesRef.current = 0
+              }
+            } else {
+              stableFramesRef.current = 1
+            }
+
+            lastStableRawPositionRef.current = rawPosition.clone()
+
+            if (stableFramesRef.current >= STABLE_FRAMES_REQUIRED) {
+              stage = 'ready'
+            } else {
+              stage = 'candidate'
+            }
+          } else {
+            stableFramesRef.current = 0
+            lastStableRawPositionRef.current = null
+            stage = 'candidate'
+          }
+
+          currentReticle.visible = true
+          setReticleStage(stage)
+
+          const displayMatrix = new THREE.Matrix4().compose(
+            smoothedPositionRef.current,
+            smoothedQuaternionRef.current ?? rawQuaternion,
+            new THREE.Vector3(1, 1, 1)
+          )
+
+          currentReticle.matrix.copy(displayMatrix)
+
+          if (stage === 'ready') {
             setStatus(
-              'Superfície encontrada. Toque para colocar o prato.'
+              'Superfície estabilizada. Toque para posicionar o x-burguer.'
             )
           } else {
-            currentReticle.visible = false
-
             setStatus(
-              'Mova o celular devagar sobre a mesa…'
+              'Superfície encontrada. Continue movendo devagar até o círculo ficar verde.'
             )
           }
 
