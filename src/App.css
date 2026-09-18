@@ -1,0 +1,289 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #090b10;
+  color: #ffffff;
+  font-family:
+    Inter,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+}
+
+button {
+  font-family: inherit;
+}
+
+.page {
+  min-height: 100vh;
+}
+
+.header {
+  height: 78px;
+  display: flex;
+  align-items: center;
+  padding: 0 7%;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(9, 11, 16, 0.92);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-icon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: #2563eb;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.brand div {
+  display: flex;
+  flex-direction: column;
+}
+
+.brand strong {
+  font-size: 16px;
+}
+
+.brand small {
+  margin-top: 3px;
+  color: #7f8795;
+  font-size: 11px;
+}
+
+.product {
+  width: min(1180px, 90%);
+  margin: 0 auto;
+  padding: 70px 0;
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 70px;
+  align-items: center;
+}
+
+.viewer-container {
+  position: relative;
+  height: 570px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 28px;
+  background:
+    radial-gradient(
+      circle at center,
+      #232a35 0%,
+      #12161e 50%,
+      #0d1016 100%
+    );
+}
+
+.badge {
+  position: absolute;
+  z-index: 2;
+  top: 22px;
+  left: 22px;
+  padding: 8px 13px;
+  border-radius: 100px;
+  background: rgba(0, 0, 0, 0.4);
+  color: #d9e0eb;
+  font-size: 12px;
+  backdrop-filter: blur(10px);
+}
+
+.viewer-help {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  z-index: 2;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  color: #9da5b3;
+  font-size: 12px;
+  pointer-events: none;
+}
+
+.ar-button {
+  position: absolute;
+  bottom: 58px;
+  left: 50%;
+  z-index: 10;
+  transform: translateX(-50%);
+  padding: 14px 22px;
+  border: 0;
+  border-radius: 100px;
+  background: #ffffff;
+  color: #111827;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+}
+
+.product-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.category {
+  margin-bottom: 14px;
+  color: #4f8cff;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 1.6px;
+}
+
+.product-info h1 {
+  margin: 0;
+  font-size: clamp(38px, 5vw, 58px);
+  line-height: 1.02;
+  letter-spacing: -2px;
+}
+
+.description {
+  max-width: 480px;
+  margin: 25px 0 0;
+  color: #9da5b3;
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+.price {
+  display: flex;
+  align-items: flex-start;
+  margin-top: 32px;
+}
+
+.price span {
+  margin-top: 8px;
+  margin-right: 5px;
+  color: #8e96a5;
+  font-size: 18px;
+}
+
+.price strong {
+  font-size: 45px;
+  letter-spacing: -2px;
+}
+
+.actions {
+  width: 100%;
+  display: flex;
+  gap: 12px;
+  margin-top: 30px;
+}
+
+.primary-button,
+.secondary-button {
+  min-height: 52px;
+  padding: 0 24px;
+  border-radius: 13px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.primary-button {
+  flex: 1;
+  border: 0;
+  background: #2563eb;
+  color: #fff;
+}
+
+.primary-button:hover {
+  background: #1d4ed8;
+}
+
+.secondary-button {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: transparent;
+  color: #fff;
+}
+
+.ar-info {
+  display: flex;
+  gap: 15px;
+  margin-top: 40px;
+  padding: 19px;
+  border: 1px solid rgba(37, 99, 235, 0.25);
+  border-radius: 15px;
+  background: rgba(37, 99, 235, 0.07);
+}
+
+.ar-info-icon {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: rgba(37, 99, 235, 0.15);
+}
+
+.ar-info strong {
+  font-size: 13px;
+}
+
+.ar-info p {
+  margin: 5px 0 0;
+  color: #8d97a8;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+@media (max-width: 850px) {
+  .header {
+    padding: 0 5%;
+  }
+
+  .product {
+    width: 92%;
+    padding: 30px 0 60px;
+    grid-template-columns: 1fr;
+    gap: 35px;
+  }
+
+  .viewer-container {
+    height: 430px;
+  }
+
+  .product-info h1 {
+    font-size: 40px;
+  }
+
+  .actions {
+    flex-direction: column;
+  }
+
+  .primary-button,
+  .secondary-button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .viewer-container {
+    height: 380px;
+    border-radius: 20px;
+  }
+
+  .viewer-help {
+    font-size: 10px;
+  }
+
+  .product-info h1 {
+    font-size: 35px;
+  }
+}
