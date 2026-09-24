@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Kivora — Cartão de referência AR</title>
+<style>
+  *{box-sizing:border-box} body{margin:0;font-family:Arial,sans-serif;background:#f4f4f6;color:#16161a;padding:28px}.sheet{max-width:900px;margin:auto;background:white;padding:32px;border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,.08)}h1{margin:0 0 8px;font-size:26px}p{line-height:1.5;color:#555}.card{width:8cm;height:5cm;display:block;margin:28px auto 18px;box-shadow:0 8px 28px rgba(0,0,0,.16)}.check{width:1cm;height:1cm;border:2px solid #111;display:inline-block;vertical-align:middle;margin-right:8px}.note{background:#f1ebff;border:1px solid #d8c7ff;padding:14px 16px;border-radius:12px}.print{border:0;background:#6f3fe3;color:#fff;font-weight:700;border-radius:10px;padding:12px 16px;cursor:pointer}@media print{body{background:white;padding:0}.sheet{box-shadow:none;padding:0;max-width:none}h1,p,.note,.print,.checkline{display:none}.card{margin:0;width:8cm;height:5cm;box-shadow:none}@page{size:A4;margin:1.5cm}}
+</style>
+</head>
+<body>
+  <main class="sheet">
+    <h1>Cartão de referência Kivora AR</h1>
+    <p>Imprima em <b>100% / tamanho real</b>. O cartão completo mede 8 × 5 cm, mas a calibração usa o marcador quadrado de exatamente <b>5 × 5 cm</b>.</p>
+    <img class="card" src="/markers/kivora-reference-card-8x5cm.png" alt="Cartão Kivora de referência AR" />
+    <p class="checkline"><span class="check"></span>Este quadrado deve medir exatamente <b>1 cm × 1 cm</b> após a impressão.</p>
+    <div class="note"><b>Importante:</b> se você já tem o cartão roxo de aproximadamente 8 × 5 cm, pode imprimir apenas o marcador quadrado de 5 cm e colá-lo sobre ele. O tamanho externo do cartão não precisa ser perfeito; o quadrado preto/branco é a régua real.</div>
+    <p><button class="print" onclick="window.print()">Imprimir cartão</button></p>
+  </main>
+</body>
+</html>

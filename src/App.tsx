@@ -54,7 +54,7 @@ function App() {
         </div>
 
         <div className="demo-badge">
-          DEMO AR • v4 Stable Anchor
+          DEMO AR • v5 Reference Card
         </div>
       </header>
 
@@ -191,8 +191,8 @@ function App() {
             <span>✦</span>
 
             <p>
-              No Android compatível, o produto é fixado em uma pose do ambiente e deixa de seguir a câmera.
-              A escala do WebXR é calculada diretamente em metros; 13 cm permanecem 13 cm ao se afastar.
+              A V5 usa um cartão físico de referência em vez de procurar a superfície da mesa.
+              O marcador conhecido calibra posição, perspectiva e escala do alimento.
             </p>
           </div>
         </article>
@@ -204,7 +204,7 @@ function App() {
         </strong>
 
         <span>
-          Protótipo demonstrativo • AR ancorado + fallback 3D
+          Protótipo demonstrativo • AR por referência física + 3D
         </span>
       </footer>
     </main>

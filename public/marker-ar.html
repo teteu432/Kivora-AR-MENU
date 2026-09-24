@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <meta name="theme-color" content="#0b0b0d" />
+  <title>Kivora AR — Cartão de referência</title>
+  <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+  <script src="https://raw.githack.com/AR-js-org/AR.js/3.4.8/aframe/build/aframe-ar.js"></script>
+  <style>
+    html, body { margin:0; width:100%; height:100%; overflow:hidden; background:#000; font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+    #ui { position:fixed; inset:0; z-index:20; pointer-events:none; color:#fff; }
+    .top { position:absolute; left:12px; right:12px; top:max(12px,env(safe-area-inset-top)); display:flex; align-items:center; gap:10px; }
+    .badge { background:rgba(10,10,12,.76); backdrop-filter:blur(10px); border:1px solid rgba(255,255,255,.14); border-radius:999px; padding:9px 13px; font-size:12px; font-weight:700; letter-spacing:.02em; box-shadow:0 8px 28px rgba(0,0,0,.24); }
+    .badge b { color:#d6b3ff; }
+    .close { margin-left:auto; width:42px; height:42px; border:0; border-radius:50%; background:rgba(10,10,12,.8); color:#fff; font-size:24px; pointer-events:auto; }
+    .hint { position:absolute; left:16px; right:16px; bottom:max(18px,env(safe-area-inset-bottom)); background:rgba(10,10,12,.82); backdrop-filter:blur(12px); border:1px solid rgba(255,255,255,.14); border-radius:18px; padding:14px 16px; box-shadow:0 14px 38px rgba(0,0,0,.3); }
+    .hint strong { display:block; font-size:15px; margin-bottom:4px; }
+    .hint span { display:block; font-size:13px; line-height:1.4; color:#d6d6dc; }
+    .status-dot { display:inline-block; width:8px; height:8px; border-radius:50%; background:#ffb55e; margin-right:7px; }
+    .found .status-dot { background:#62e68a; box-shadow:0 0 0 5px rgba(98,230,138,.12); }
+    .measure { margin-top:8px; font-size:12px !important; color:#cdb8ff !important; }
+    .debug { position:absolute; left:12px; top:70px; display:none; }
+    a-scene { position:fixed !important; inset:0 !important; }
+  </style>
+</head>
+<body>
+  <div id="ui">
+    <div class="top">
+      <div class="badge"><span class="status-dot"></span><b id="statusTitle">Procurando cartão</b></div>
+      <button class="close" type="button" aria-label="Fechar" onclick="history.length > 1 ? history.back() : location.href='/'">×</button>
+    </div>
+    <div class="hint" id="hintBox">
+      <strong id="hintStrong">Mostre seu cartão manual 8 × 5 cm para a câmera.</strong>
+      <span id="hintText">Não é mais necessário detectar a mesa. Seu cartão manual calibra posição, perspectiva e tamanho do produto. A base de escala usa o lado menor de 5 cm.</span>
+      <span class="measure" id="measureText">Mantenha o marcador quadrado visível enquanto contorna o alimento.</span>
+    </div>
+  </div>
+
+  <a-scene
+    id="arScene"
+    embedded
+    vr-mode-ui="enabled: false"
+    device-orientation-permission-ui="enabled: false"
+    loading-screen="enabled: false"
+    renderer="antialias: false; colorManagement: true; physicallyCorrectLights: false; precision: mediump; alpha: true"
+    arjs="sourceType: webcam; detectionMode: mono; patternRatio: 0.5; debugUIEnabled: false; sourceWidth: 480; sourceHeight: 640; displayWidth: 480; displayHeight: 640;"
+  >
+    <a-marker
+      id="referenceMarker"
+      type="pattern"
+      url="/markers/user-card.patt"
+      size="0.05"
+      emitevents="true"
+      smooth="true"
+      smooth-count="5"
+      smooth-tolerance="0.008"
+      smooth-threshold="2"
+    >
+      <a-entity id="productAnchor" position="0 0.003 0">
+        <a-entity id="productModel" kivora-physical="width: 0.13"></a-entity>
+      </a-entity>
+      <a-entity light="type: hemisphere; color: #fff; groundColor: #7b6c62; intensity: 1.7"></a-entity>
+      <a-entity light="type: directional; color: #fff; intensity: 0.9" position="0.3 0.6 0.4"></a-entity>
+    </a-marker>
+    <a-entity camera></a-entity>
+  </a-scene>
+
+  <script>
+    (() => {
+      const PRODUCTS = {
+        'x-burguer-especial': {
+          name: 'X-Burguer Especial',
+          shortName: 'X-Burguer',
+          width: 0.13,
+          model: 'https://cdn.jsdelivr.net/gh/mindset-code/burger-house-3d@c2bddc597efe4870326c843a6e056727752fc261/public/hamburger__food_big-hamburger.glb'
+        },
+        'pizza-calabresa': {
+          name: 'Pizza de Calabresa',
+          shortName: 'Calabresa',
+          width: 0.32,
+          model: '/models/pizza-calabresa.glb'
+        }
+      };
+
+      const query = new URLSearchParams(location.search);
+      const product = PRODUCTS[query.get('product')] || PRODUCTS['x-burguer-especial'];
+      const markerSize = 0.05; // 5 cm quadrados impressos
+      const gap = 0.012;      // 1,2 cm entre cartão e produto
+
+      AFRAME.registerComponent('kivora-physical', {
+        schema: { width: { type: 'number', default: 0.13 } },
+        init() {
+          this.el.addEventListener('model-loaded', () => {
+            const obj = this.el.getObject3D('mesh');
+            if (!obj) return;
+
+            // Nesta etapa o modelo ainda está no centro do marcador e sem deslocamento do anchor.
+            obj.updateMatrixWorld(true);
+            const box = new THREE.Box3().setFromObject(obj);
+            const size = new THREE.Vector3();
+            const center = new THREE.Vector3();
+            box.getSize(size);
+            box.getCenter(center);
+            const horizontal = Math.max(size.x, size.z);
+            if (!Number.isFinite(horizontal) || horizontal <= 0) return;
+
+            // Centraliza X/Z e encosta a base em Y=0 antes de escalar.
+            obj.position.x -= center.x;
+            obj.position.z -= center.z;
+            obj.position.y -= box.min.y;
+
+            const factor = this.data.width / horizontal;
+            this.el.object3D.scale.setScalar(factor);
+            this.el.object3D.updateMatrixWorld(true);
+            this.el.emit('physical-ready', { factor, originalWidth: horizontal });
+          }, { once: true });
+        }
+      });
+
+      const modelEl = document.getElementById('productModel');
+      const anchorEl = document.getElementById('productAnchor');
+      const markerEl = document.getElementById('referenceMarker');
+      const ui = document.getElementById('ui');
+      const statusTitle = document.getElementById('statusTitle');
+      const hintStrong = document.getElementById('hintStrong');
+      const hintText = document.getElementById('hintText');
+      const measureText = document.getElementById('measureText');
+
+      modelEl.setAttribute('kivora-physical', `width: ${product.width}`);
+      modelEl.setAttribute('gltf-model', product.model);
+
+      modelEl.addEventListener('physical-ready', () => {
+        // Produto ao lado do marcador: metade do marcador + pequeno vão + metade do alimento.
+        // Como AR.js recebe size=0.05, estas coordenadas ficam em metros reais.
+        const x = markerSize / 2 + gap + product.width / 2;
+        anchorEl.setAttribute('position', `${x.toFixed(4)} 0.003 0`);
+        measureText.textContent = `${product.shortName}: ${(product.width * 100).toFixed(0)} cm • referência: cartão manual de 8 × 5 cm (lado menor = 5 cm).`;
+      });
+
+      markerEl.addEventListener('markerFound', () => {
+        ui.classList.add('found');
+        statusTitle.textContent = 'Referência detectada';
+        hintStrong.textContent = `${product.shortName} calibrado pela referência.`;
+        hintText.textContent = 'Agora aproxime, afaste e caminhe para os lados. O alimento deve permanecer preso ao cartão, sem procurar a superfície da mesa.';
+      });
+
+      markerEl.addEventListener('markerLost', () => {
+        ui.classList.remove('found');
+        statusTitle.textContent = 'Procurando cartão';
+        hintStrong.textContent = 'Aponte novamente para o seu cartão manual.';
+        hintText.textContent = 'Mantenha o marcador quadrado visível no enquadramento para o rastreamento continuar estável.';
+      });
+
+      modelEl.addEventListener('model-error', () => {
+        statusTitle.textContent = 'Falha ao carregar modelo';
+        hintStrong.textContent = 'O modelo 3D não carregou.';
+        hintText.textContent = 'Verifique sua conexão e abra novamente pelo Chrome/Safari.';
+      });
+    })();
+  </script>
+</body>
+</html>
