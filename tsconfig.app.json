@@ -19,6 +19,7 @@
   },
   "files": [
     "src/main.tsx",
-    "src/model-viewer.d.ts"
+    "src/model-viewer.d.ts",
+    "src/three-shim.d.ts"
   ]
 }
