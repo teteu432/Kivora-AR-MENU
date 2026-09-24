@@ -2,274 +2,171 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-  <meta name="theme-color" content="#000000" />
-  <title>Kivora AR — Cartão 8 × 5 cm</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <meta name="theme-color" content="#0b0b0d" />
+  <title>Kivora AR — rastreamento por imagem</title>
+  <!-- Compiler + A-Frame + MindAR image tracking -->
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image.prod.js"></script>
   <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.8/aframe/build/aframe-ar.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
   <style>
-    * { box-sizing:border-box; }
-    html, body { margin:0; width:100%; height:100%; overflow:hidden; background:#000; font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
-    #sceneMount { position:fixed; inset:0; z-index:0; background:transparent; }
-    #ui { position:fixed; inset:0; z-index:20; pointer-events:none; color:#fff; }
-    .top { position:absolute; left:12px; right:12px; top:max(12px,env(safe-area-inset-top)); display:flex; align-items:center; gap:10px; }
-    .badge { background:rgba(10,10,12,.78); backdrop-filter:blur(10px); border:1px solid rgba(255,255,255,.14); border-radius:999px; padding:9px 13px; font-size:12px; font-weight:750; letter-spacing:.02em; box-shadow:0 8px 28px rgba(0,0,0,.24); }
-    .badge b { color:#d6b3ff; }
-    .status-dot { display:inline-block; width:8px; height:8px; border-radius:50%; background:#ffb55e; margin-right:7px; }
-    .found .status-dot { background:#62e68a; box-shadow:0 0 0 5px rgba(98,230,138,.12); }
-    .error-state .status-dot { background:#ff6666; }
-    .close { margin-left:auto; width:42px; height:42px; border:0; border-radius:50%; background:rgba(10,10,12,.82); color:#fff; font-size:24px; pointer-events:auto; }
-    .hint { position:absolute; left:16px; right:16px; bottom:max(18px,env(safe-area-inset-bottom)); background:rgba(10,10,12,.84); backdrop-filter:blur(12px); border:1px solid rgba(255,255,255,.14); border-radius:18px; padding:14px 16px; box-shadow:0 14px 38px rgba(0,0,0,.3); }
-    .hint strong { display:block; font-size:15px; margin-bottom:4px; }
-    .hint span { display:block; font-size:13px; line-height:1.4; color:#d6d6dc; }
-    .measure { margin-top:8px; font-size:12px !important; color:#cdb8ff !important; }
-
-    #gate { position:fixed; inset:0; z-index:60; display:flex; align-items:flex-end; justify-content:center; padding:20px 18px max(28px,env(safe-area-inset-bottom)); background:radial-gradient(circle at 50% 25%, #17121f 0, #070708 50%, #000 100%); color:#fff; }
-    #gate.hidden { display:none; }
-    .gate-card { width:min(520px,100%); background:rgba(18,18,22,.96); border:1px solid rgba(255,255,255,.13); border-radius:24px; padding:20px; box-shadow:0 20px 60px rgba(0,0,0,.42); }
-    .gate-card h1 { margin:0 0 8px; font-size:22px; }
-    .gate-card p { margin:0 0 16px; color:#cfcfd7; line-height:1.45; font-size:14px; }
-    .primary { width:100%; min-height:52px; border:0; border-radius:15px; background:#8d5cff; color:white; font-size:16px; font-weight:800; pointer-events:auto; }
-    .primary:disabled { opacity:.6; }
-    .secondary { width:100%; margin-top:10px; min-height:44px; border:1px solid rgba(255,255,255,.14); border-radius:13px; background:transparent; color:#fff; font-size:14px; font-weight:700; pointer-events:auto; }
-    #gateError { display:none; margin-top:14px; padding:12px 13px; border-radius:13px; background:rgba(255,82,82,.10); border:1px solid rgba(255,92,92,.26); color:#ffd1d1; font-size:13px; line-height:1.45; }
-    #gateError.show { display:block; }
-    .mini { margin-top:12px !important; font-size:12px !important; color:#aaaab5 !important; }
-
-    #boot { position:fixed; inset:0; z-index:45; display:none; place-items:center; background:#000; color:white; pointer-events:none; }
-    #boot.show { display:grid; }
-    .spinner { width:34px; height:34px; border-radius:50%; border:3px solid rgba(255,255,255,.18); border-top-color:#9b6cff; animation:spin .8s linear infinite; margin:0 auto 14px; }
-    @keyframes spin { to { transform:rotate(360deg); } }
-    .boottext { text-align:center; font-size:14px; color:#d5d5dc; }
-
-    a-scene { position:fixed !important; inset:0 !important; z-index:1 !important; background:transparent !important; }
-    #arjs-video, video#arjs-video { position:fixed !important; inset:0 !important; width:100vw !important; height:100vh !important; object-fit:cover !important; z-index:0 !important; display:block !important; visibility:visible !important; opacity:1 !important; }
-    .a-canvas, canvas.a-canvas { position:fixed !important; inset:0 !important; width:100vw !important; height:100vh !important; z-index:1 !important; background:transparent !important; }
+    html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#fff}
+    #stage{position:fixed;inset:0;background:#000}
+    #ui{position:fixed;inset:0;z-index:30;pointer-events:none}
+    .top{position:absolute;left:18px;right:18px;top:max(18px,env(safe-area-inset-top));display:flex;gap:10px;align-items:center}
+    .badge{background:rgba(10,10,12,.78);border:1px solid rgba(255,255,255,.14);border-radius:999px;padding:10px 14px;font-size:14px;font-weight:800;box-shadow:0 8px 28px rgba(0,0,0,.28)}
+    .dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#ffb35b;margin-right:8px}.found .dot{background:#59e487;box-shadow:0 0 0 5px rgba(89,228,135,.13)}
+    .close{margin-left:auto;width:48px;height:48px;border:0;border-radius:50%;background:rgba(10,10,12,.82);color:#fff;font-size:30px;pointer-events:auto}
+    .panel{position:absolute;left:18px;right:18px;bottom:max(20px,env(safe-area-inset-bottom));background:rgba(10,10,12,.88);border:1px solid rgba(255,255,255,.13);border-radius:22px;padding:18px;box-shadow:0 16px 44px rgba(0,0,0,.36)}
+    .panel strong{display:block;font-size:18px;line-height:1.25;margin-bottom:6px}.panel span{display:block;color:#d7d7dd;font-size:14px;line-height:1.45}.measure{margin-top:8px;color:#cdb8ff!important}
+    #prepare{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;background:#08080a;padding:24px}
+    .card{width:min(430px,100%);background:#121216;border:1px solid #2b2b32;border-radius:24px;padding:24px;box-shadow:0 20px 70px rgba(0,0,0,.4)}
+    .card h1{font-size:24px;margin:0 0 10px}.card p{color:#cfcfd5;line-height:1.5;margin:0 0 18px}.progress{height:9px;background:#26262d;border-radius:999px;overflow:hidden;margin:14px 0}.bar{height:100%;width:0;background:#a76cff;transition:width .12s linear}.small{font-size:13px;color:#aaaab2!important}
+    #startBtn,#retryBtn{width:100%;border:0;border-radius:15px;padding:15px 18px;font-size:16px;font-weight:800;background:#fff;color:#0b0b0d;display:none}
+    #retryBtn{background:#2d2d35;color:#fff;margin-top:10px}
+    a-scene{position:fixed!important;inset:0!important}
   </style>
 </head>
 <body>
-  <div id="sceneMount"></div>
-
-  <div id="gate">
-    <div class="gate-card">
-      <h1>Ativar câmera</h1>
-      <p>A câmera será aberta diretamente pelo AR. Esta versão remove o segundo acesso à câmera que podia deixar alguns Androids com tela preta.</p>
-      <button class="primary" id="startCamera">Abrir câmera</button>
-      <button class="secondary" id="backButton">Voltar ao cardápio</button>
-      <div id="gateError"></div>
-      <p class="mini">Se você já bloqueou a câmera antes, toque no ícone de ajustes ao lado do endereço do site → Permissões → Câmera → Permitir.</p>
-    </div>
-  </div>
-
-  <div id="boot">
-    <div>
-      <div class="spinner"></div>
-      <div class="boottext">Iniciando câmera e rastreamento…</div>
+  <div id="stage"></div>
+  <div id="prepare">
+    <div class="card">
+      <h1 id="prepTitle">Preparando sua referência…</h1>
+      <p id="prepText">Estou transformando a foto real do seu cartão 8 × 5 cm em um alvo de rastreamento.</p>
+      <div class="progress"><div id="bar" class="bar"></div></div>
+      <p class="small" id="percent">0%</p>
+      <button id="startBtn" type="button">Abrir câmera</button>
+      <button id="retryBtn" type="button">Tentar novamente</button>
     </div>
   </div>
 
   <div id="ui" style="display:none">
     <div class="top">
-      <div class="badge"><span class="status-dot"></span><b id="statusTitle">Procurando cartão</b></div>
-      <button class="close" type="button" aria-label="Fechar" id="closeButton">×</button>
+      <div class="badge"><span class="dot"></span><span id="status">Iniciando câmera</span></div>
+      <button class="close" type="button" onclick="history.length>1?history.back():location.href='/'">×</button>
     </div>
-    <div class="hint" id="hintBox">
-      <strong id="hintStrong">Mostre seu cartão manual 8 × 5 cm para a câmera.</strong>
-      <span id="hintText">Mantenha a borda inteira e as marcas pretas visíveis. Não é mais necessário detectar a mesa.</span>
-      <span class="measure" id="measureText">X-Burguer: 13 cm • referência: cartão 8 × 5 cm.</span>
+    <div class="panel">
+      <strong id="hintStrong">Mostre o cartão inteiro para a câmera.</strong>
+      <span id="hintText">Esta versão procura o desenho real do cartão — não um marcador quadrado aproximado.</span>
+      <span class="measure" id="measure">Cartão físico: 5 cm de largura × 8 cm de altura • X-Burguer: 13 cm.</span>
     </div>
   </div>
 
 <script>
 (() => {
-  const PRODUCTS = {
-    'x-burguer-especial': {
-      name: 'X-Burguer Especial', shortName: 'X-Burguer', width: 0.13,
-      model: 'https://cdn.jsdelivr.net/gh/mindset-code/burger-house-3d@c2bddc597efe4870326c843a6e056727752fc261/public/hamburger__food_big-hamburger.glb'
-    },
-    'pizza-calabresa': {
-      name: 'Pizza de Calabresa', shortName: 'Calabresa', width: 0.32,
-      model: '/models/pizza-calabresa.glb'
-    }
+  const TARGET_URL='/targets/user-card-target.jpg';
+  const CARD_WIDTH_M=0.05; // cartão está em pé na foto: 5 cm de largura
+  const PRODUCTS={
+    'x-burguer-especial':{name:'X-Burguer Especial',shortName:'X-Burguer',widthM:0.13,model:'https://cdn.jsdelivr.net/gh/mindset-code/burger-house-3d@c2bddc597efe4870326c843a6e056727752fc261/public/hamburger__food_big-hamburger.glb'},
+    'pizza-calabresa':{name:'Pizza de Calabresa',shortName:'Calabresa',widthM:0.32,model:'/models/pizza-calabresa.glb'}
   };
+  const q=new URLSearchParams(location.search);
+  const product=PRODUCTS[q.get('product')]||PRODUCTS['x-burguer-especial'];
+  const prepare=document.getElementById('prepare');
+  const prepTitle=document.getElementById('prepTitle');
+  const prepText=document.getElementById('prepText');
+  const bar=document.getElementById('bar');
+  const percent=document.getElementById('percent');
+  const startBtn=document.getElementById('startBtn');
+  const retryBtn=document.getElementById('retryBtn');
+  const ui=document.getElementById('ui');
+  const status=document.getElementById('status');
+  const hintStrong=document.getElementById('hintStrong');
+  const hintText=document.getElementById('hintText');
+  const measure=document.getElementById('measure');
+  let mindBlobUrl=null;
+  let scene=null;
+  let arSystem=null;
 
-  const q = new URLSearchParams(location.search);
-  const product = PRODUCTS[q.get('product')] || PRODUCTS['x-burguer-especial'];
-  const startButton = document.getElementById('startCamera');
-  const backButton = document.getElementById('backButton');
-  const closeButton = document.getElementById('closeButton');
-  const gate = document.getElementById('gate');
-  const gateError = document.getElementById('gateError');
-  const boot = document.getElementById('boot');
-  const ui = document.getElementById('ui');
-  const mount = document.getElementById('sceneMount');
-  let arStarted = false;
-  let cameraWatchdog = null;
+  const loadImage=(src)=>new Promise((resolve,reject)=>{const i=new Image();i.onload=()=>resolve(i);i.onerror=reject;i.src=src+'?v=7';});
 
-  const goBack = () => history.length > 1 ? history.back() : location.href='/';
-  backButton.addEventListener('click', goBack);
-  closeButton.addEventListener('click', goBack);
-
-  function showError(title, extra='') {
-    boot.classList.remove('show');
-    gate.classList.remove('hidden');
-    startButton.disabled = false;
-    startButton.textContent = 'Tentar novamente';
-    gateError.classList.add('show');
-    gateError.innerHTML = `<strong>${title}</strong>${extra ? '<br>'+extra : ''}`;
-  }
-
-
-  function registerPhysicalComponent() {
-    if (AFRAME.components['kivora-physical']) return;
-    AFRAME.registerComponent('kivora-physical', {
-      schema:{ width:{type:'number', default:0.13} },
-      init() {
-        this.el.addEventListener('model-loaded', () => {
-          const obj = this.el.getObject3D('mesh');
-          if (!obj) return;
-          obj.updateMatrixWorld(true);
-          const box = new THREE.Box3().setFromObject(obj);
-          const size = new THREE.Vector3();
-          const center = new THREE.Vector3();
-          box.getSize(size); box.getCenter(center);
-          const horizontal = Math.max(size.x, size.z);
-          if (!Number.isFinite(horizontal) || horizontal <= 0) return;
-          obj.position.x -= center.x;
-          obj.position.z -= center.z;
-          obj.position.y -= box.min.y;
-          const factor = this.data.width / horizontal;
-          this.el.object3D.scale.setScalar(factor);
-          this.el.object3D.updateMatrixWorld(true);
-          this.el.emit('physical-ready', { factor, originalWidth:horizontal });
-        }, {once:true});
-      }
-    });
-  }
-
-  function buildScene() {
-    registerPhysicalComponent();
-    const modelUrl = product.model.replaceAll('&','&amp;').replaceAll('"','&quot;');
-    mount.innerHTML = `
-      <a-scene id="arScene" embedded vr-mode-ui="enabled:false" device-orientation-permission-ui="enabled:false" loading-screen="enabled:false"
-        renderer="antialias:false; colorManagement:true; physicallyCorrectLights:false; precision:mediump; alpha:true"
-        arjs="sourceType:webcam; videoTexture:true; detectionMode:mono; patternRatio:0.5; debugUIEnabled:false; sourceWidth:480; sourceHeight:640; displayWidth:480; displayHeight:640;">
-        <a-marker id="referenceMarker" type="pattern" url="/markers/user-card.patt" size="0.05" emitevents="true" smooth="true" smooth-count="5" smooth-tolerance="0.01" smooth-threshold="2">
-          <a-entity id="productAnchor" position="0 0.003 0">
-            <a-entity id="productModel" kivora-physical="width:${product.width}" gltf-model="${modelUrl}"></a-entity>
-          </a-entity>
-          <a-entity light="type:hemisphere; color:#fff; groundColor:#7b6c62; intensity:1.55"></a-entity>
-          <a-entity light="type:directional; color:#fff; intensity:0.8" position="0.3 0.6 0.4"></a-entity>
-        </a-marker>
-        <a-entity camera></a-entity>
-      </a-scene>`;
-
-    const scene = document.getElementById('arScene');
-    scene.addEventListener('loaded', bindScene, {once:true});
-    // In some devices A-Frame may already be loaded before listener attachment.
-    setTimeout(() => { if (scene.hasLoaded) bindScene(); }, 250);
-  }
-
-  let sceneBound = false;
-  function bindScene() {
-    if (sceneBound) return;
-    sceneBound = true;
-    const marker = document.getElementById('referenceMarker');
-    const model = document.getElementById('productModel');
-    const anchor = document.getElementById('productAnchor');
-    const statusTitle = document.getElementById('statusTitle');
-    const hintStrong = document.getElementById('hintStrong');
-    const hintText = document.getElementById('hintText');
-    const measureText = document.getElementById('measureText');
-
-    model.addEventListener('physical-ready', () => {
-      // AR.js marker coordinate width = 5 cm. Place product beside it.
-      const markerSize = 0.05;
-      const gap = 0.014;
-      const x = markerSize/2 + gap + product.width/2;
-      anchor.setAttribute('position', `${x.toFixed(4)} 0.003 0`);
-      measureText.textContent = `${product.shortName}: ${(product.width*100).toFixed(0)} cm • cartão físico: 8 × 5 cm.`;
-    });
-
-    marker.addEventListener('markerFound', () => {
-      ui.classList.add('found');
-      statusTitle.textContent = 'Cartão detectado';
-      hintStrong.textContent = `${product.shortName} calibrado.`;
-      hintText.textContent = 'Mantenha o cartão no enquadramento e mova o celular para os lados para observar o produto em 3D.';
-    });
-    marker.addEventListener('markerLost', () => {
-      ui.classList.remove('found');
-      statusTitle.textContent = 'Procurando cartão';
-      hintStrong.textContent = 'Mostre novamente o cartão 8 × 5 cm.';
-      hintText.textContent = 'Tente enquadrar o cartão inteiro, sem reflexo forte e com boa iluminação.';
-    });
-    model.addEventListener('model-error', () => {
-      ui.classList.add('error-state');
-      statusTitle.textContent = 'Erro no modelo 3D';
-      hintStrong.textContent = 'A câmera abriu, mas o alimento não carregou.';
-    });
-
-    // Espere o vídeo real da câmera antes de remover a tela de carregamento.
-    // Também força o elemento criado pelo AR.js a ficar visível atrás do canvas.
-    clearTimeout(cameraWatchdog);
-    const startedAt = performance.now();
-    const waitForCamera = () => {
-      const videos = [...document.querySelectorAll('video')];
-      const video = videos.find(v => v.readyState >= 2 && v.videoWidth > 0);
-      if (video) {
-        video.id = video.id || 'arjs-video';
-        Object.assign(video.style, {
-          position:'fixed', left:'0', top:'0', width:'100vw', height:'100vh',
-          objectFit:'cover', zIndex:'0', display:'block', visibility:'visible', opacity:'1'
-        });
-        boot.classList.remove('show');
-        ui.style.display = 'block';
-        statusTitle.textContent = 'Procurando cartão';
-        return;
-      }
-      if (performance.now() - startedAt > 10000) {
-        mount.innerHTML = '';
-        ui.style.display = 'none';
-        arStarted = false;
-        sceneBound = false;
-        showError('O AR não recebeu imagem da câmera.', 'Abra /camera-test.html. Se a câmera aparecer nesse teste, o problema está no AR.js; se também ficar preto, é permissão/navegador.');
-        return;
-      }
-      cameraWatchdog = setTimeout(waitForCamera, 250);
-    };
-    waitForCamera();
-  }
-
-  startButton.addEventListener('click', () => {
-    if (arStarted) return;
-    gateError.classList.remove('show');
-    startButton.disabled = true;
-    startButton.textContent = 'Abrindo câmera…';
-    if (!window.isSecureContext) {
-      showError('A câmera exige HTTPS.', 'Abra a versão publicada na Vercel.');
-      return;
+  AFRAME.registerComponent('kivora-fit-model',{
+    schema:{widthUnits:{type:'number',default:2.6}},
+    init(){
+      this.el.addEventListener('model-loaded',()=>{
+        const obj=this.el.getObject3D('mesh'); if(!obj)return;
+        obj.updateMatrixWorld(true);
+        const box=new THREE.Box3().setFromObject(obj), size=new THREE.Vector3(), center=new THREE.Vector3();
+        box.getSize(size); box.getCenter(center);
+        const horizontal=Math.max(size.x,size.z); if(!isFinite(horizontal)||horizontal<=0)return;
+        // centraliza e encosta a base no plano local do modelo
+        obj.position.x-=center.x; obj.position.z-=center.z; obj.position.y-=box.min.y;
+        this.el.object3D.scale.setScalar(this.data.widthUnits/horizontal);
+        this.el.object3D.updateMatrixWorld(true);
+      },{once:true});
     }
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      showError('Este navegador não oferece acesso à câmera.', 'Abra o link diretamente no Chrome atualizado.');
-      return;
-    }
-    gate.classList.add('hidden');
-    boot.classList.add('show');
-    arStarted = true;
-    try {
+  });
+
+  async function compileTarget(){
+    try{
+      if(!window.MINDAR || !window.MINDAR.Compiler) throw new Error('Compiler do MindAR não carregou');
+      const img=await loadImage(TARGET_URL);
+      const compiler=new window.MINDAR.Compiler();
+      await compiler.compileImageTargets([img],p=>{
+        const v=Math.max(1,Math.min(100,Math.round(p)));
+        bar.style.width=v+'%'; percent.textContent=v+'%';
+      });
+      const buffer=await compiler.exportData();
+      mindBlobUrl=URL.createObjectURL(new Blob([buffer],{type:'application/octet-stream'}));
+      bar.style.width='100%'; percent.textContent='Referência pronta';
+      prepTitle.textContent='Referência preparada';
+      prepText.textContent='Agora abra a câmera e aponte para o mesmo cartão desenhado à mão.';
       buildScene();
-    } catch (err) {
-      arStarted = false;
-      showError('Falha ao iniciar o AR.', err && err.message ? err.message : 'Erro desconhecido');
+      startBtn.style.display='block';
+    }catch(err){
+      console.error(err);
+      prepTitle.textContent='Não consegui preparar a referência';
+      prepText.textContent='O rastreador de imagem não carregou corretamente. Tente recarregar a página.';
+      percent.textContent=String(err && err.message ? err.message : err);
+      retryBtn.style.display='block';
+    }
+  }
+
+  function buildScene(){
+    const productUnits=product.widthM/CARD_WIDTH_M;
+    const gapUnits=0.20; // 1 cm, pois 1 unidade = 5 cm
+    const x=0.5+gapUnits+productUnits/2;
+    const html=`
+      <a-scene id="mindScene" embedded
+        mindar-image="imageTargetSrc: ${mindBlobUrl}; autoStart: false; uiLoading: no; uiScanning: no; uiError: no; warmupTolerance: 2; missTolerance: 8; filterMinCF: 0.001; filterBeta: 20;"
+        color-space="sRGB" renderer="colorManagement: true; physicallyCorrectLights: false; antialias: false; precision: mediump; alpha: true"
+        vr-mode-ui="enabled:false" device-orientation-permission-ui="enabled:false">
+        <a-assets timeout="12000"><a-asset-item id="foodModel" src="${product.model}"></a-asset-item></a-assets>
+        <a-camera position="0 0 0" look-controls="enabled:false"></a-camera>
+        <a-entity id="imageTarget" mindar-image-target="targetIndex:0">
+          <a-entity position="${x.toFixed(3)} 0 0.03" rotation="90 0 0">
+            <a-entity id="food" gltf-model="#foodModel" kivora-fit-model="widthUnits:${productUnits.toFixed(4)}"></a-entity>
+          </a-entity>
+          <a-entity light="type:hemisphere;color:#fff;groundColor:#777;intensity:1.45"></a-entity>
+          <a-entity light="type:directional;color:#fff;intensity:.7" position="0 1 2"></a-entity>
+        </a-entity>
+      </a-scene>`;
+    document.getElementById('stage').innerHTML=html;
+    scene=document.getElementById('mindScene');
+    const target=document.getElementById('imageTarget');
+    scene.addEventListener('loaded',()=>{ arSystem=scene.systems['mindar-image-system']; });
+    scene.addEventListener('arReady',()=>{status.textContent='Procurando cartão';hintStrong.textContent='Aponte para o cartão inteiro.';hintText.textContent='Tente manter as quatro bordas visíveis e evite reflexo forte sobre o papel.';});
+    scene.addEventListener('arError',()=>{status.textContent='Falha na câmera';hintStrong.textContent='O rastreador não conseguiu iniciar.';hintText.textContent='Feche outros apps que usam a câmera e recarregue a página.';});
+    target.addEventListener('targetFound',()=>{ui.classList.add('found');status.textContent='Cartão detectado';hintStrong.textContent=product.shortName+' calibrado pela sua referência.';hintText.textContent='Agora aproxime, afaste e mova o celular para os lados mantendo parte do cartão visível.';});
+    target.addEventListener('targetLost',()=>{ui.classList.remove('found');status.textContent='Procurando cartão';hintStrong.textContent='Perdi a referência.';hintText.textContent='Mostre novamente o cartão inteiro para recuperar o rastreamento.';});
+    measure.textContent=`${product.shortName}: ${(product.widthM*100).toFixed(0)} cm • cartão: 5 × 8 cm • escala: ${productUnits.toFixed(2)}× a largura do cartão.`;
+  }
+
+  startBtn.addEventListener('click',async()=>{
+    try{
+      startBtn.disabled=true; startBtn.textContent='Abrindo…';
+      // scene may still be finishing A-Frame init
+      for(let i=0;i<50 && !arSystem;i++) await new Promise(r=>setTimeout(r,100));
+      if(!arSystem) throw new Error('Sistema AR ainda não ficou pronto');
+      prepare.style.display='none'; ui.style.display='block'; status.textContent='Iniciando câmera';
+      await arSystem.start();
+    }catch(err){
+      console.error(err); prepare.style.display='flex'; ui.style.display='none'; startBtn.disabled=false; startBtn.textContent='Abrir câmera';
+      prepTitle.textContent='Não consegui abrir a câmera'; prepText.textContent='Verifique a permissão de câmera do Chrome e tente novamente.'; percent.textContent=String(err&&err.message?err.message:err);
     }
   });
-
-  window.addEventListener('pagehide', () => {
-    document.querySelectorAll('video').forEach(v => {
-      const s = v.srcObject;
-      if (s && s.getTracks) s.getTracks().forEach(t => t.stop());
-    });
-  });
+  retryBtn.addEventListener('click',()=>location.reload());
+  compileTarget();
 })();
 </script>
 </body>
