@@ -10,7 +10,7 @@
   <style>
     * { box-sizing:border-box; }
     html, body { margin:0; width:100%; height:100%; overflow:hidden; background:#000; font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
-    #sceneMount { position:fixed; inset:0; z-index:1; background:#000; }
+    #sceneMount { position:fixed; inset:0; z-index:0; background:transparent; }
     #ui { position:fixed; inset:0; z-index:20; pointer-events:none; color:#fff; }
     .top { position:absolute; left:12px; right:12px; top:max(12px,env(safe-area-inset-top)); display:flex; align-items:center; gap:10px; }
     .badge { background:rgba(10,10,12,.78); backdrop-filter:blur(10px); border:1px solid rgba(255,255,255,.14); border-radius:999px; padding:9px 13px; font-size:12px; font-weight:750; letter-spacing:.02em; box-shadow:0 8px 28px rgba(0,0,0,.24); }
@@ -42,7 +42,9 @@
     @keyframes spin { to { transform:rotate(360deg); } }
     .boottext { text-align:center; font-size:14px; color:#d5d5dc; }
 
-    a-scene { position:fixed !important; inset:0 !important; }
+    a-scene { position:fixed !important; inset:0 !important; z-index:1 !important; background:transparent !important; }
+    #arjs-video, video#arjs-video { position:fixed !important; inset:0 !important; width:100vw !important; height:100vh !important; object-fit:cover !important; z-index:0 !important; display:block !important; visibility:visible !important; opacity:1 !important; }
+    .a-canvas, canvas.a-canvas { position:fixed !important; inset:0 !important; width:100vw !important; height:100vh !important; z-index:1 !important; background:transparent !important; }
   </style>
 </head>
 <body>
@@ -51,7 +53,7 @@
   <div id="gate">
     <div class="gate-card">
       <h1>Ativar câmera</h1>
-      <p>O AR só será carregado depois que o Chrome confirmar acesso à câmera traseira. Isso evita a tela preta que aconteceu na versão anterior.</p>
+      <p>A câmera será aberta diretamente pelo AR. Esta versão remove o segundo acesso à câmera que podia deixar alguns Androids com tela preta.</p>
       <button class="primary" id="startCamera">Abrir câmera</button>
       <button class="secondary" id="backButton">Voltar ao cardápio</button>
       <div id="gateError"></div>
@@ -117,29 +119,6 @@
     gateError.innerHTML = `<strong>${title}</strong>${extra ? '<br>'+extra : ''}`;
   }
 
-  async function probeCameraPermission() {
-    if (!window.isSecureContext) {
-      throw Object.assign(new Error('HTTPS_REQUIRED'), { name:'SecurityError' });
-    }
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      throw Object.assign(new Error('MEDIA_UNSUPPORTED'), { name:'NotSupportedError' });
-    }
-
-    const stream = await navigator.mediaDevices.getUserMedia({
-      audio:false,
-      video:{ facingMode:{ ideal:'environment' }, width:{ ideal:640 }, height:{ ideal:480 } }
-    });
-
-    // Confirm that frames can really be produced, then release the camera for AR.js.
-    const testVideo = document.createElement('video');
-    testVideo.muted = true;
-    testVideo.playsInline = true;
-    testVideo.srcObject = stream;
-    await testVideo.play().catch(()=>{});
-    await new Promise(resolve => setTimeout(resolve, 350));
-    stream.getTracks().forEach(t => t.stop());
-    testVideo.srcObject = null;
-  }
 
   function registerPhysicalComponent() {
     if (AFRAME.components['kivora-physical']) return;
@@ -174,7 +153,7 @@
     mount.innerHTML = `
       <a-scene id="arScene" embedded vr-mode-ui="enabled:false" device-orientation-permission-ui="enabled:false" loading-screen="enabled:false"
         renderer="antialias:false; colorManagement:true; physicallyCorrectLights:false; precision:mediump; alpha:true"
-        arjs="sourceType:webcam; detectionMode:mono; patternRatio:0.5; debugUIEnabled:false; sourceWidth:480; sourceHeight:640; displayWidth:480; displayHeight:640;">
+        arjs="sourceType:webcam; videoTexture:true; detectionMode:mono; patternRatio:0.5; debugUIEnabled:false; sourceWidth:480; sourceHeight:640; displayWidth:480; displayHeight:640;">
         <a-marker id="referenceMarker" type="pattern" url="/markers/user-card.patt" size="0.05" emitevents="true" smooth="true" smooth-count="5" smooth-tolerance="0.01" smooth-threshold="2">
           <a-entity id="productAnchor" position="0 0.003 0">
             <a-entity id="productModel" kivora-physical="width:${product.width}" gltf-model="${modelUrl}"></a-entity>
@@ -230,49 +209,66 @@
       hintStrong.textContent = 'A câmera abriu, mas o alimento não carregou.';
     });
 
-    boot.classList.remove('show');
-    ui.style.display = 'block';
-
-    // Watch for the AR.js camera video. If it never appears, do not leave a black screen forever.
+    // Espere o vídeo real da câmera antes de remover a tela de carregamento.
+    // Também força o elemento criado pelo AR.js a ficar visível atrás do canvas.
     clearTimeout(cameraWatchdog);
-    cameraWatchdog = setTimeout(() => {
+    const startedAt = performance.now();
+    const waitForCamera = () => {
       const videos = [...document.querySelectorAll('video')];
-      const active = videos.some(v => v.readyState >= 2 && v.videoWidth > 0);
-      if (!active) {
+      const video = videos.find(v => v.readyState >= 2 && v.videoWidth > 0);
+      if (video) {
+        video.id = video.id || 'arjs-video';
+        Object.assign(video.style, {
+          position:'fixed', left:'0', top:'0', width:'100vw', height:'100vh',
+          objectFit:'cover', zIndex:'0', display:'block', visibility:'visible', opacity:'1'
+        });
+        boot.classList.remove('show');
+        ui.style.display = 'block';
+        statusTitle.textContent = 'Procurando cartão';
+        return;
+      }
+      if (performance.now() - startedAt > 10000) {
         mount.innerHTML = '';
         ui.style.display = 'none';
         arStarted = false;
         sceneBound = false;
-        showError('A câmera foi permitida, mas o AR.js não conseguiu iniciar o vídeo.', 'Feche outras páginas que estejam usando a câmera e toque em “Tentar novamente”.');
+        showError('O AR não recebeu imagem da câmera.', 'Abra /camera-test.html. Se a câmera aparecer nesse teste, o problema está no AR.js; se também ficar preto, é permissão/navegador.');
+        return;
       }
-    }, 7000);
+      cameraWatchdog = setTimeout(waitForCamera, 250);
+    };
+    waitForCamera();
   }
 
-  startButton.addEventListener('click', async () => {
+  startButton.addEventListener('click', () => {
     if (arStarted) return;
     gateError.classList.remove('show');
     startButton.disabled = true;
-    startButton.textContent = 'Verificando câmera…';
+    startButton.textContent = 'Abrindo câmera…';
+    if (!window.isSecureContext) {
+      showError('A câmera exige HTTPS.', 'Abra a versão publicada na Vercel.');
+      return;
+    }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      showError('Este navegador não oferece acesso à câmera.', 'Abra o link diretamente no Chrome atualizado.');
+      return;
+    }
+    gate.classList.add('hidden');
+    boot.classList.add('show');
+    arStarted = true;
     try {
-      await probeCameraPermission();
-      gate.classList.add('hidden');
-      boot.classList.add('show');
-      arStarted = true;
       buildScene();
     } catch (err) {
-      const name = err && err.name ? err.name : '';
-      if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
-        showError('O Chrome está sem permissão para usar a câmera.', 'Toque no ícone de ajustes ao lado do endereço → Permissões → Câmera → Permitir. Depois volte e tente novamente.');
-      } else if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
-        showError('Nenhuma câmera foi encontrada.', 'Verifique se outro aplicativo está usando a câmera.');
-      } else if (name === 'NotReadableError' || name === 'TrackStartError') {
-        showError('A câmera está ocupada por outro aplicativo.', 'Feche câmera, WhatsApp, Instagram ou outra aba que possa estar usando a câmera e tente novamente.');
-      } else if (name === 'SecurityError') {
-        showError('A câmera exige conexão HTTPS.', 'Abra a versão publicada na Vercel, e não um arquivo local.');
-      } else {
-        showError('Não foi possível iniciar a câmera.', `${name || 'Erro desconhecido'}${err && err.message ? ': '+err.message : ''}`);
-      }
+      arStarted = false;
+      showError('Falha ao iniciar o AR.', err && err.message ? err.message : 'Erro desconhecido');
     }
+  });
+
+  window.addEventListener('pagehide', () => {
+    document.querySelectorAll('video').forEach(v => {
+      const s = v.srcObject;
+      if (s && s.getTracks) s.getTracks().forEach(t => t.stop());
+    });
   });
 })();
 </script>
