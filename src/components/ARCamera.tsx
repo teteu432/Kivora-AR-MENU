@@ -205,6 +205,7 @@ export default function ARCamera() {
         <video ref={videoRef} className="camera-video" playsInline muted />
         <canvas ref={overlayRef} className="overlay-canvas" />
         <canvas ref={processRef} className="process-canvas" aria-hidden="true" />
+        {started && !detection?.found && <div className="card-guide" aria-hidden="true"><span>8 × 5 cm</span></div>}
 
         {!started && (
           <section className="start-panel">
@@ -236,7 +237,7 @@ export default function ARCamera() {
               <span>
                 {detection?.found
                   ? 'As quatro bolinhas devem continuar presas aos cantos enquanto você aproxima, afasta e inclina o celular.'
-                  : 'Deixe a borda preta e os quatro cantos visíveis. O cartão pode estar em pé ou deitado.'}
+                  : 'Mantenha o cartão inteiro próximo ao centro da tela, com a borda preta e os quatro cantos visíveis.'}
               </span>
             </section>
 

@@ -62,3 +62,33 @@ button { font: inherit; }
 @media (min-width: 800px) {
   .instruction-card { left: 50%; right: auto; width: min(620px, calc(100% - 32px)); transform: translateX(-50%); }
 }
+
+.card-guide {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  top: 48%;
+  width: min(48vw, 220px);
+  aspect-ratio: 8 / 5;
+  transform: translate(-50%, -50%);
+  border: 2px dashed rgba(255,255,255,.72);
+  border-radius: 12px;
+  box-shadow: 0 0 0 9999px rgba(0,0,0,.04);
+  pointer-events: none;
+}
+.card-guide::before, .card-guide::after {
+  content: '';
+  position: absolute;
+  background: rgba(255,255,255,.8);
+}
+.card-guide::before { width: 18px; height: 2px; left: 50%; top: 50%; transform: translate(-50%,-50%); }
+.card-guide::after { width: 2px; height: 18px; left: 50%; top: 50%; transform: translate(-50%,-50%); }
+.card-guide span {
+  position: absolute;
+  left: 50%;
+  bottom: -28px;
+  transform: translateX(-50%);
+  color: rgba(255,255,255,.82);
+  font: 700 12px/1 system-ui;
+  white-space: nowrap;
+}

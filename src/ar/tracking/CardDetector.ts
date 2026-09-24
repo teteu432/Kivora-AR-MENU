@@ -227,6 +227,8 @@ export class CardDetector {
     }
 
     const frameArea = this.width * this.height
+    const frameCenter = { x: this.width / 2, y: this.height / 2 }
+    const maxCenterDistance = Math.hypot(frameCenter.x, frameCenter.y)
     let best: CardDetection = {
       found: false,
       confidence: 0,
@@ -243,24 +245,59 @@ export class CardDetector {
         bottomLeft: c.bottomLeft,
       }
       const aspectRatio = ratioFromCorners(corners)
-      const bboxArea = Math.max(1, (c.maxX - c.minX) * (c.maxY - c.minY))
+      const bboxW = Math.max(1, c.maxX - c.minX)
+      const bboxH = Math.max(1, c.maxY - c.minY)
+      const bboxArea = bboxW * bboxH
       const brightArea = c.count * SAMPLE_STEP * SAMPLE_STEP
       const areaRatio = bboxArea / frameArea
       const fillRatio = clamp01(brightArea / bboxArea)
 
-      if (areaRatio < 0.012 || areaRatio > 0.72) continue
-      if (aspectRatio < 1.08 || aspectRatio > 2.35) continue
+      // O cartão real ocupa uma região relativamente pequena da câmera.
+      // O falso positivo visto no teste era uma região enorme do piso/luminária.
+      if (areaRatio < 0.008 || areaRatio > 0.22) continue
+      if (aspectRatio < 1.18 || aspectRatio > 2.05) continue
+
+      // Candidatos encostando nas bordas costumam ser piso, parede ou reflexos.
+      // Para esta etapa pedimos que o usuário mantenha o cartão inteiro visível.
+      const edgeMarginX = this.width * 0.025
+      const edgeMarginY = this.height * 0.025
+      const touchesEdge =
+        c.minX <= edgeMarginX ||
+        c.maxX >= this.width - edgeMarginX ||
+        c.minY <= edgeMarginY ||
+        c.maxY >= this.height - edgeMarginY
+      if (touchesEdge) continue
 
       const ratioError = Math.abs(aspectRatio - TARGET_RATIO) / TARGET_RATIO
-      const ratioScore = clamp01(1 - ratioError / 0.52)
-      const areaScore = clamp01((areaRatio - 0.012) / 0.16)
-      // Um cartão com linhas pretas ainda mantém bastante área branca.
-      const fillScore = clamp01((fillRatio - 0.28) / 0.5)
-      const confidence = ratioScore * 0.55 + areaScore * 0.22 + fillScore * 0.23
+      const ratioScore = clamp01(1 - ratioError / 0.34)
+
+      // Faixa ideal observada para o teste: cartão entre ~2% e ~12% do frame.
+      // Fora disso ele ainda pode ser aceito, mas perde pontuação rapidamente.
+      const idealArea = 0.065
+      const areaDistance = Math.abs(areaRatio - idealArea)
+      const areaScore = clamp01(1 - areaDistance / 0.105)
+
+      // O cartão possui bastante branco, apesar da borda e dos riscos pretos.
+      const fillScore = clamp01((fillRatio - 0.30) / 0.52)
+
+      // Para o protótipo, pedir o cartão próximo ao centro reduz falsos positivos
+      // e torna a detecção muito mais previsível em ambientes reais.
+      const center = {
+        x: (c.minX + c.maxX) / 2,
+        y: (c.minY + c.maxY) / 2,
+      }
+      const centerDistance = Math.hypot(center.x - frameCenter.x, center.y - frameCenter.y)
+      const centerScore = clamp01(1 - centerDistance / (maxCenterDistance * 0.72))
+
+      const confidence =
+        ratioScore * 0.46 +
+        areaScore * 0.22 +
+        fillScore * 0.17 +
+        centerScore * 0.15
 
       if (confidence > best.confidence) {
         best = {
-          found: confidence >= 0.47,
+          found: confidence >= 0.55,
           corners,
           confidence,
           areaRatio,
