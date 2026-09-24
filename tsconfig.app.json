@@ -15,11 +15,8 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
-    "jsx": "react-jsx"
+    "jsx": "react-jsx",
+    "types": ["vite/client"]
   },
-  "files": [
-    "src/main.tsx",
-    "src/model-viewer.d.ts",
-    "src/three-shim.d.ts"
-  ]
+  "include": ["src"]
 }
