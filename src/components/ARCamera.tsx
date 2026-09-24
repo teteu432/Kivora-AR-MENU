@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { CameraManager } from '../ar/camera/CameraManager'
 import { CardDetector } from '../ar/tracking/CardDetector'
-import { loadOpenCv } from '../ar/tracking/loadOpenCv'
 import { PoseSmoother } from '../ar/tracking/PoseSmoother'
 import type { CardDetection, OrderedCorners, Point2D } from '../ar/types/ARTypes'
 
@@ -101,7 +100,6 @@ export default function ARCamera() {
   const [started, setStarted] = useState(false)
   const [starting, setStarting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [cvReady, setCvReady] = useState(false)
   const [detection, setDetection] = useState<CardDetection | null>(null)
   const [trackingFps, setTrackingFps] = useState(0)
   const debug = useMemo(() => new URLSearchParams(location.search).get('debug') === 'true', [])
@@ -115,8 +113,6 @@ export default function ARCamera() {
     try {
       await camera.start(videoRef.current)
       setStarted(true)
-      await loadOpenCv()
-      setCvReady(true)
     } catch (e) {
       setError(cameraErrorMessage(e))
       camera.stop()
@@ -127,7 +123,7 @@ export default function ARCamera() {
   }
 
   useEffect(() => {
-    if (!started || !cvReady || !videoRef.current || !processRef.current || !overlayRef.current) return
+    if (!started || !videoRef.current || !processRef.current || !overlayRef.current) return
 
     const video = videoRef.current
     const processCanvas = processRef.current
@@ -148,9 +144,8 @@ export default function ARCamera() {
 
     const run = async () => {
       try {
-        const cv = await loadOpenCv()
         if (cancelled) return
-        detector = new CardDetector(cv, PROCESS_WIDTH, PROCESS_HEIGHT)
+        detector = new CardDetector(PROCESS_WIDTH, PROCESS_HEIGHT, processCanvas)
 
         const tick = () => {
           if (cancelled || !detector) return
@@ -202,7 +197,7 @@ export default function ARCamera() {
       const canvas = overlayRef.current
       canvas?.getContext('2d')?.clearRect(0, 0, canvas.width, canvas.height)
     }
-  }, [started, cvReady])
+  }, [started])
 
   return (
     <main className="camera-page">
@@ -231,7 +226,7 @@ export default function ARCamera() {
             <header className="camera-header">
               <div className={`status-chip ${detection?.found ? 'found' : ''}`}>
                 <span className="dot" />
-                {detection?.found ? 'Cartão encontrado' : cvReady ? 'Procurando cartão' : 'Carregando visão'}
+                {detection?.found ? 'Cartão encontrado' : 'Procurando cartão'}
               </div>
               <button className="close-btn" onClick={() => location.reload()} aria-label="Fechar">×</button>
             </header>
@@ -248,7 +243,7 @@ export default function ARCamera() {
             {debug && (
               <aside className="debug-panel">
                 <b>DEBUG</b>
-                <span>OpenCV: {cvReady ? 'ok' : 'carregando'}</span>
+                <span>motor: TypeScript local</span>
                 <span>tracking: {trackingFps} fps</span>
                 <span>found: {String(Boolean(detection?.found))}</span>
                 <span>confidence: {(detection?.confidence ?? 0).toFixed(2)}</span>

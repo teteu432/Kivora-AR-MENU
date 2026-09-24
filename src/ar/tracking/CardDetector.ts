@@ -1,21 +1,22 @@
 import type { CardDetection, OrderedCorners, Point2D } from '../types/ARTypes'
 
 const TARGET_RATIO = 8 / 5
+const SAMPLE_STEP = 2
+
+type Component = {
+  count: number
+  minX: number
+  minY: number
+  maxX: number
+  maxY: number
+  topLeft: Point2D
+  topRight: Point2D
+  bottomRight: Point2D
+  bottomLeft: Point2D
+}
 
 function distance(a: Point2D, b: Point2D) {
   return Math.hypot(a.x - b.x, a.y - b.y)
-}
-
-function orderCorners(points: Point2D[]): OrderedCorners {
-  const sums = points.map((p) => p.x + p.y)
-  const diffs = points.map((p) => p.x - p.y)
-
-  const topLeft = points[sums.indexOf(Math.min(...sums))]
-  const bottomRight = points[sums.indexOf(Math.max(...sums))]
-  const topRight = points[diffs.indexOf(Math.max(...diffs))]
-  const bottomLeft = points[diffs.indexOf(Math.min(...diffs))]
-
-  return { topLeft, topRight, bottomRight, bottomLeft }
 }
 
 function ratioFromCorners(c: OrderedCorners) {
@@ -30,46 +31,200 @@ function clamp01(value: number) {
   return Math.max(0, Math.min(1, value))
 }
 
+function pointSum(p: Point2D) {
+  return p.x + p.y
+}
+
+function pointDiff(p: Point2D) {
+  return p.x - p.y
+}
+
+function mergeComponents(a: Component, b: Component): Component {
+  const points = [
+    a.topLeft, a.topRight, a.bottomRight, a.bottomLeft,
+    b.topLeft, b.topRight, b.bottomRight, b.bottomLeft,
+  ]
+  return {
+    count: a.count + b.count,
+    minX: Math.min(a.minX, b.minX),
+    minY: Math.min(a.minY, b.minY),
+    maxX: Math.max(a.maxX, b.maxX),
+    maxY: Math.max(a.maxY, b.maxY),
+    topLeft: points.reduce((best, p) => pointSum(p) < pointSum(best) ? p : best),
+    topRight: points.reduce((best, p) => pointDiff(p) > pointDiff(best) ? p : best),
+    bottomRight: points.reduce((best, p) => pointSum(p) > pointSum(best) ? p : best),
+    bottomLeft: points.reduce((best, p) => pointDiff(p) < pointDiff(best) ? p : best),
+  }
+}
+
+function overlapRatio(a0: number, a1: number, b0: number, b1: number) {
+  const overlap = Math.max(0, Math.min(a1, b1) - Math.max(a0, b0))
+  const smallest = Math.max(1, Math.min(a1 - a0, b1 - b0))
+  return overlap / smallest
+}
+
 export class CardDetector {
   private readonly width: number
   private readonly height: number
-  private src: any
-  private gray: any
-  private blur: any
-  private edges: any
-  private hierarchy: any
-  private contours: any
-  private kernel: any
+  private readonly gridW: number
+  private readonly gridH: number
+  private readonly mask: Uint8Array
+  private readonly visited: Uint8Array
+  private readonly queue: Int32Array
+  private readonly context: CanvasRenderingContext2D | null
 
-  constructor(private readonly cv: any, width = 360, height = 270) {
+  constructor(width = 360, height = 270, canvas?: HTMLCanvasElement) {
     this.width = width
     this.height = height
-    this.src = new cv.Mat(height, width, cv.CV_8UC4)
-    this.gray = new cv.Mat(height, width, cv.CV_8UC1)
-    this.blur = new cv.Mat(height, width, cv.CV_8UC1)
-    this.edges = new cv.Mat(height, width, cv.CV_8UC1)
-    this.hierarchy = new cv.Mat()
-    this.contours = new cv.MatVector()
-    this.kernel = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(3, 3))
+    this.gridW = Math.ceil(width / SAMPLE_STEP)
+    this.gridH = Math.ceil(height / SAMPLE_STEP)
+    const cells = this.gridW * this.gridH
+    this.mask = new Uint8Array(cells)
+    this.visited = new Uint8Array(cells)
+    this.queue = new Int32Array(cells)
+    this.context = canvas?.getContext('2d', { willReadFrequently: true }) ?? null
   }
 
   detect(canvas: HTMLCanvasElement): CardDetection {
     const started = performance.now()
-    const cv = this.cv
-    const fresh = cv.imread(canvas)
-    fresh.copyTo(this.src)
-    fresh.delete()
+    const ctx = this.context ?? canvas.getContext('2d', { willReadFrequently: true })
+    if (!ctx) {
+      return { found: false, confidence: 0, areaRatio: 0, aspectRatio: 0, processingMs: performance.now() - started }
+    }
 
-    cv.cvtColor(this.src, this.gray, cv.COLOR_RGBA2GRAY)
-    cv.GaussianBlur(this.gray, this.blur, new cv.Size(5, 5), 0)
-    cv.Canny(this.blur, this.edges, 45, 135)
-    cv.morphologyEx(this.edges, this.edges, cv.MORPH_CLOSE, this.kernel)
+    const image = ctx.getImageData(0, 0, this.width, this.height)
+    const data = image.data
 
-    this.contours.delete()
-    this.hierarchy.delete()
-    this.contours = new cv.MatVector()
-    this.hierarchy = new cv.Mat()
-    cv.findContours(this.edges, this.contours, this.hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE)
+    // Estima o brilho médio para adaptar o limiar ao ambiente.
+    let lumSum = 0
+    let lumCount = 0
+    for (let y = 0; y < this.height; y += 8) {
+      for (let x = 0; x < this.width; x += 8) {
+        const i = (y * this.width + x) * 4
+        const r = data[i]
+        const g = data[i + 1]
+        const b = data[i + 2]
+        lumSum += r * 0.299 + g * 0.587 + b * 0.114
+        lumCount += 1
+      }
+    }
+    const meanLum = lumCount ? lumSum / lumCount : 90
+    const whiteThreshold = Math.max(145, Math.min(215, meanLum + 48))
+
+    this.mask.fill(0)
+    this.visited.fill(0)
+
+    // Máscara de regiões claras e relativamente neutras. O cartão é branco,
+    // enquanto a mesa do teste é escura. Não dependemos do desenho interno.
+    for (let gy = 0; gy < this.gridH; gy += 1) {
+      const y = Math.min(this.height - 1, gy * SAMPLE_STEP)
+      for (let gx = 0; gx < this.gridW; gx += 1) {
+        const x = Math.min(this.width - 1, gx * SAMPLE_STEP)
+        const i = (y * this.width + x) * 4
+        const r = data[i]
+        const g = data[i + 1]
+        const b = data[i + 2]
+        const max = Math.max(r, g, b)
+        const min = Math.min(r, g, b)
+        const lum = r * 0.299 + g * 0.587 + b * 0.114
+        const chroma = max - min
+        if (lum >= whiteThreshold && chroma <= 72) {
+          this.mask[gy * this.gridW + gx] = 1
+        }
+      }
+    }
+
+    const components: Component[] = []
+    const minCells = Math.max(26, Math.floor(this.gridW * this.gridH * 0.0025))
+
+    for (let start = 0; start < this.mask.length; start += 1) {
+      if (!this.mask[start] || this.visited[start]) continue
+
+      let head = 0
+      let tail = 0
+      this.queue[tail++] = start
+      this.visited[start] = 1
+
+      let count = 0
+      let minX = this.gridW
+      let minY = this.gridH
+      let maxX = 0
+      let maxY = 0
+      let tl: Point2D = { x: this.gridW, y: this.gridH }
+      let tr: Point2D = { x: 0, y: this.gridH }
+      let br: Point2D = { x: 0, y: 0 }
+      let bl: Point2D = { x: this.gridW, y: 0 }
+
+      while (head < tail) {
+        const idx = this.queue[head++]
+        const x = idx % this.gridW
+        const y = Math.floor(idx / this.gridW)
+        count += 1
+        minX = Math.min(minX, x)
+        maxX = Math.max(maxX, x)
+        minY = Math.min(minY, y)
+        maxY = Math.max(maxY, y)
+
+        const p = { x, y }
+        if (pointSum(p) < pointSum(tl)) tl = p
+        if (pointDiff(p) > pointDiff(tr)) tr = p
+        if (pointSum(p) > pointSum(br)) br = p
+        if (pointDiff(p) < pointDiff(bl)) bl = p
+
+        const left = idx - 1
+        const right = idx + 1
+        const up = idx - this.gridW
+        const down = idx + this.gridW
+
+        if (x > 0 && this.mask[left] && !this.visited[left]) {
+          this.visited[left] = 1; this.queue[tail++] = left
+        }
+        if (x + 1 < this.gridW && this.mask[right] && !this.visited[right]) {
+          this.visited[right] = 1; this.queue[tail++] = right
+        }
+        if (y > 0 && this.mask[up] && !this.visited[up]) {
+          this.visited[up] = 1; this.queue[tail++] = up
+        }
+        if (y + 1 < this.gridH && this.mask[down] && !this.visited[down]) {
+          this.visited[down] = 1; this.queue[tail++] = down
+        }
+      }
+
+      if (count >= minCells) {
+        const scale = SAMPLE_STEP
+        components.push({
+          count,
+          minX: minX * scale,
+          minY: minY * scale,
+          maxX: maxX * scale,
+          maxY: maxY * scale,
+          topLeft: { x: tl.x * scale, y: tl.y * scale },
+          topRight: { x: tr.x * scale, y: tr.y * scale },
+          bottomRight: { x: br.x * scale, y: br.y * scale },
+          bottomLeft: { x: bl.x * scale, y: bl.y * scale },
+        })
+      }
+    }
+
+    // O risco preto central pode dividir o papel em duas regiões brancas.
+    // Por isso, além de regiões isoladas, testamos pares alinhados e próximos.
+    const candidates = components.slice()
+    const topComponents = components
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 8)
+
+    for (let i = 0; i < topComponents.length; i += 1) {
+      for (let j = i + 1; j < topComponents.length; j += 1) {
+        const a = topComponents[i]
+        const b = topComponents[j]
+        const xOverlap = overlapRatio(a.minX, a.maxX, b.minX, b.maxX)
+        const verticalGap = Math.max(0, Math.max(a.minY, b.minY) - Math.min(a.maxY, b.maxY))
+        const avgHeight = ((a.maxY - a.minY) + (b.maxY - b.minY)) / 2
+        if (xOverlap >= 0.58 && verticalGap <= Math.max(18, avgHeight * 0.4)) {
+          candidates.push(mergeComponents(a, b))
+        }
+      }
+    }
 
     const frameArea = this.width * this.height
     let best: CardDetection = {
@@ -80,48 +235,39 @@ export class CardDetector {
       processingMs: 0,
     }
 
-    for (let i = 0; i < this.contours.size(); i += 1) {
-      const contour = this.contours.get(i)
-      const area = Math.abs(cv.contourArea(contour))
-      const areaRatio = area / frameArea
-
-      if (areaRatio < 0.015 || areaRatio > 0.72) {
-        contour.delete()
-        continue
+    for (const c of candidates) {
+      const corners: OrderedCorners = {
+        topLeft: c.topLeft,
+        topRight: c.topRight,
+        bottomRight: c.bottomRight,
+        bottomLeft: c.bottomLeft,
       }
+      const aspectRatio = ratioFromCorners(corners)
+      const bboxArea = Math.max(1, (c.maxX - c.minX) * (c.maxY - c.minY))
+      const brightArea = c.count * SAMPLE_STEP * SAMPLE_STEP
+      const areaRatio = bboxArea / frameArea
+      const fillRatio = clamp01(brightArea / bboxArea)
 
-      const perimeter = cv.arcLength(contour, true)
-      const approx = new cv.Mat()
-      cv.approxPolyDP(contour, approx, 0.025 * perimeter, true)
+      if (areaRatio < 0.012 || areaRatio > 0.72) continue
+      if (aspectRatio < 1.08 || aspectRatio > 2.35) continue
 
-      if (approx.rows === 4 && cv.isContourConvex(approx)) {
-        const points: Point2D[] = []
-        const data = approx.data32S
-        for (let p = 0; p < 4; p += 1) {
-          points.push({ x: data[p * 2], y: data[p * 2 + 1] })
-        }
+      const ratioError = Math.abs(aspectRatio - TARGET_RATIO) / TARGET_RATIO
+      const ratioScore = clamp01(1 - ratioError / 0.52)
+      const areaScore = clamp01((areaRatio - 0.012) / 0.16)
+      // Um cartão com linhas pretas ainda mantém bastante área branca.
+      const fillScore = clamp01((fillRatio - 0.28) / 0.5)
+      const confidence = ratioScore * 0.55 + areaScore * 0.22 + fillScore * 0.23
 
-        const corners = orderCorners(points)
-        const aspectRatio = ratioFromCorners(corners)
-        const ratioError = Math.abs(aspectRatio - TARGET_RATIO) / TARGET_RATIO
-        const ratioScore = clamp01(1 - ratioError / 0.48)
-        const areaScore = clamp01((areaRatio - 0.015) / 0.18)
-        const confidence = ratioScore * 0.72 + areaScore * 0.28
-
-        if (aspectRatio >= 1.12 && aspectRatio <= 2.25 && confidence > best.confidence) {
-          best = {
-            found: confidence >= 0.48,
-            corners,
-            confidence,
-            areaRatio,
-            aspectRatio,
-            processingMs: 0,
-          }
+      if (confidence > best.confidence) {
+        best = {
+          found: confidence >= 0.47,
+          corners,
+          confidence,
+          areaRatio,
+          aspectRatio,
+          processingMs: 0,
         }
       }
-
-      approx.delete()
-      contour.delete()
     }
 
     best.processingMs = performance.now() - started
@@ -129,12 +275,6 @@ export class CardDetector {
   }
 
   dispose() {
-    this.src.delete()
-    this.gray.delete()
-    this.blur.delete()
-    this.edges.delete()
-    this.hierarchy.delete()
-    this.contours.delete()
-    this.kernel.delete()
+    // Sem WASM e sem memória nativa para liberar.
   }
 }

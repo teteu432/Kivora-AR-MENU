@@ -1,45 +1,29 @@
-# Kivora AR Menu — Zero / Stage 2
+# Kivora AR Menu — Etapa 2 Lite
 
-Projeto refeito do zero.
+Esta versão remove completamente o OpenCV.js.
 
-## Objetivo desta versão
+## Objetivo
+Abrir a câmera e detectar geometricamente o cartão físico branco de 8 × 5 cm sobre a mesa escura.
 
-Validar somente a fundação do rastreamento:
+## Motor de rastreamento
+O detector é escrito em TypeScript puro e roda localmente no navegador:
 
-1. abrir a câmera com `getUserMedia`;
-2. carregar OpenCV.js;
-3. procurar um quadrilátero com proporção aproximada de 8:5;
-4. desenhar os quatro cantos detectados;
-5. suavizar pequenas oscilações.
+1. reduz a imagem para 360 × 270;
+2. encontra regiões claras/neutras;
+3. agrupa regiões conectadas;
+4. testa proporção próxima de 8:5;
+5. calcula os quatro extremos do cartão;
+6. suaviza TL/TR/BR/BL entre frames.
 
-**Não há modelo 3D nesta etapa.** Isso é intencional.
+Não existe CDN, WASM ou módulo externo de visão computacional nesta etapa.
 
-## Como rodar
-
+## Rodar
 ```bash
 npm install
 npm run dev
 ```
 
-Para câmera em celular, publique em HTTPS (Vercel funciona bem).
+Para câmera em celular, publique em HTTPS (ex.: Vercel).
 
 ## Debug
-
-Abra com:
-
-`/?debug=true`
-
-O painel mostra FPS do tracking, confiança, proporção detectada, área e tempo de processamento.
-
-## Teste de aceite
-
-Use o cartão físico de 8 × 5 cm criado no protótipo.
-
-- Mostre o cartão inteiro.
-- A borda deve ficar contornada.
-- Os quatro cantos devem receber TL/TR/BR/BL.
-- Aproxime e afaste.
-- Incline o cartão.
-- Caminhe levemente para os lados.
-
-Só após essa etapa ficar estável devemos implementar `solvePnP` e Three.js.
+Abra `?debug=true` para ver FPS, confiança, proporção, área e tempo de processamento.
