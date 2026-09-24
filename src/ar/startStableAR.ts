@@ -13,18 +13,22 @@ export type StableARSession = {
   reposition: () => void
 }
 
-const STABLE_FRAMES_REQUIRED = 8
-const MAX_STABLE_DELTA_METERS = 0.018
+// V4.1: tolerância maior e menos frames necessários.
+// A versão anterior exigia estabilidade demais em superfícies escuras/lisas.
+const STABLE_FRAMES_REQUIRED = 3
+const MAX_STABLE_DELTA_METERS = 0.04
+const HIT_GRACE_MS = 320
+const STATUS_THROTTLE_MS = 320
 
 /**
- * WebXR enxuto para alimentos.
+ * AR leve para alimentos.
  *
- * Diferença principal em relação ao AR padrão do <model-viewer>:
- * - a escala é convertida uma vez para metros reais;
- * - o hit-test só é usado ANTES da colocação;
- * - depois do toque o produto deixa de seguir o retículo/câmera;
- * - quando a API de Anchors existe, o ponto é preso ao mundo real;
- * - sem Anchors, congelamos a pose no referenceSpace (fallback).
+ * V4.1 reduz trabalho por frame:
+ * - status React é atualizado no máximo ~3x/s, não 60x/s;
+ * - hit-test é amostrado a ~30 Hz;
+ * - framebuffer e foveation são ajustados ao aparelho;
+ * - retículo usa menos geometria;
+ * - a detecção aceita pequenas oscilações de rastreamento.
  */
 export async function startStableAR(
   product: Product3D,
@@ -37,27 +41,44 @@ export async function startStableAR(
     throw new Error('WebXR não está disponível neste navegador.')
   }
 
-  // IMPORTANTE: requestSession precisa ocorrer ainda dentro do gesto do usuário.
-  // Não fazemos import/load do modelo antes desta chamada.
+  // requestSession permanece dentro do gesto do usuário.
   const session = await xr.requestSession('immersive-ar', {
     requiredFeatures: ['hit-test'],
-    optionalFeatures: ['anchors', 'dom-overlay'],
+    optionalFeatures: ['anchors', 'dom-overlay', 'local-floor'],
     domOverlay: { root: overlayRoot },
   })
 
   callbacks.onSessionStart?.()
-  callbacks.onStatus?.('Abrindo a câmera…')
+
+  let lastStatus = ''
+  let lastStatusAt = 0
+  const emitStatus = (message: string, force = false) => {
+    const now = performance.now()
+    if (!force) {
+      if (message === lastStatus && now - lastStatusAt < 1400) return
+      if (now - lastStatusAt < STATUS_THROTTLE_MS) return
+    }
+    lastStatus = message
+    lastStatusAt = now
+    callbacks.onStatus?.(message)
+  }
+
+  emitStatus('Abrindo a câmera…', true)
 
   const [THREE, { GLTFLoader }] = await Promise.all([
     import('three'),
     import('three/examples/jsm/loaders/GLTFLoader.js'),
   ])
 
-  const lowMemory = ((navigator as any).deviceMemory ?? 8) <= 4
+  const memory = (navigator as any).deviceMemory ?? 8
+  const cores = navigator.hardwareConcurrency ?? 8
+  const lowEnd = memory <= 4 || cores <= 4
 
   const renderer = new THREE.WebGLRenderer({
     alpha: true,
     antialias: false,
+    stencil: false,
+    precision: 'mediump',
     powerPreference: 'high-performance',
     preserveDrawingBuffer: false,
   })
@@ -67,13 +88,13 @@ export async function startStableAR(
   renderer.setSize(window.innerWidth, window.innerHeight)
   renderer.xr.enabled = true
   renderer.xr.setReferenceSpaceType('local')
-  renderer.xr.setFramebufferScaleFactor(lowMemory ? 0.72 : 0.82)
+  renderer.xr.setFramebufferScaleFactor(lowEnd ? 0.5 : 0.64)
   renderer.domElement.className = 'kivora-xr-canvas'
   document.body.appendChild(renderer.domElement)
 
   try {
     await renderer.xr.setSession(session)
-    renderer.xr.setFoveation(lowMemory ? 0.7 : 0.5)
+    renderer.xr.setFoveation(lowEnd ? 1 : 0.8)
   } catch (error) {
     renderer.dispose()
     renderer.domElement.remove()
@@ -84,13 +105,13 @@ export async function startStableAR(
   const scene = new THREE.Scene()
   const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20)
 
-  // Luz leve, sem sombras em tempo real.
-  scene.add(new THREE.HemisphereLight(0xffffff, 0x5d554b, 2.2))
-  const keyLight = new THREE.DirectionalLight(0xffffff, 1.25)
-  keyLight.position.set(1.4, 2.4, 1.2)
+  // Iluminação simples, sem sombras em tempo real.
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x5d554b, 2.0))
+  const keyLight = new THREE.DirectionalLight(0xffffff, 1.1)
+  keyLight.position.set(1.2, 2.2, 1.0)
   scene.add(keyLight)
 
-  callbacks.onStatus?.(`Carregando ${product.shortName}…`)
+  emitStatus(`Carregando ${product.shortName}…`, true)
 
   let gltf: any
   try {
@@ -115,13 +136,10 @@ export async function startStableAR(
     throw new Error('O modelo 3D possui dimensões inválidas.')
   }
 
-  // WebXR trabalha em METROS. 13 cm => 0,13 m no mundo.
-  // Não existe compensação por distância da câmera e não existe scaleCalibration aqui.
   const targetWidthMeters = product.realWidthCm / 100
   const physicalScale = targetWidthMeters / originalHorizontal
   source.scale.setScalar(physicalScale)
 
-  // Centraliza X/Z e coloca a base exatamente em Y=0 do ponto de apoio.
   const scaledBox = new THREE.Box3().setFromObject(source)
   const scaledCenter = new THREE.Vector3()
   scaledBox.getCenter(scaledCenter)
@@ -138,7 +156,7 @@ export async function startStableAR(
     const materials = Array.isArray(object.material) ? object.material : [object.material]
     for (const material of materials) {
       if (material && 'envMapIntensity' in material) {
-        material.envMapIntensity = 0.75
+        material.envMapIntensity = 0.65
       }
     }
   })
@@ -147,25 +165,26 @@ export async function startStableAR(
   template.name = `KivoraStable-${product.id}`
   template.add(source)
 
-  // Retículo do mesmo diâmetro do alimento. Ele desaparece assim que o usuário fixa.
+  // Retículo leve com o diâmetro real do alimento.
   const radius = Math.max(targetWidthMeters / 2, 0.04)
   const reticle = new THREE.Group()
-  reticle.matrixAutoUpdate = false
+  reticle.matrixAutoUpdate = true
   reticle.visible = false
 
+  const segments = lowEnd ? 20 : 28
   const disc = new THREE.Mesh(
-    new THREE.CircleGeometry(radius, lowMemory ? 28 : 42).rotateX(-Math.PI / 2),
+    new THREE.CircleGeometry(radius, segments).rotateX(-Math.PI / 2),
     new THREE.MeshBasicMaterial({
       color: 0xe5a066,
       transparent: true,
-      opacity: 0.12,
+      opacity: 0.1,
       side: THREE.DoubleSide,
       depthWrite: false,
     })
   )
 
   const ring = new THREE.Mesh(
-    new THREE.RingGeometry(Math.max(radius - 0.003, 0.001), radius, lowMemory ? 36 : 52)
+    new THREE.RingGeometry(Math.max(radius - 0.003, 0.001), radius, segments)
       .rotateX(-Math.PI / 2),
     new THREE.MeshBasicMaterial({
       color: 0xe5a066,
@@ -188,9 +207,18 @@ export async function startStableAR(
   let worldAnchor: any = null
   let latestHitResult: any = null
   let latestPoseMatrix: Float32Array | null = null
-  let lastHitPosition: any = null
   let stableFrames = 0
   let placing = false
+  let lastHitAt = 0
+  let lastHitSampleAt = 0
+
+  const lastRawPosition = new THREE.Vector3()
+  let hasLastRawPosition = false
+  const targetPosition = new THREE.Vector3()
+  const targetQuaternion = new THREE.Quaternion()
+  const targetScale = new THREE.Vector3()
+  const targetMatrix = new THREE.Matrix4()
+  let reticleInitialized = false
 
   const markPlaced = (placed: boolean) => callbacks.onPlaced?.(placed)
 
@@ -199,7 +227,7 @@ export async function startStableAR(
       try {
         worldAnchor.delete?.()
       } catch {
-        // Alguns runtimes expõem delete mas podem rejeitar se a sessão já terminou.
+        // Sessões encerradas podem rejeitar delete().
       }
       worldAnchor = null
     }
@@ -223,7 +251,6 @@ export async function startStableAR(
 
     object.position.copy(position)
     object.quaternion.copy(quaternion)
-    // A escala física já está dentro do template. A pose NUNCA altera escala.
     object.scale.set(1, 1, 1)
   }
 
@@ -231,7 +258,7 @@ export async function startStableAR(
     if (placing || placedObject) return
 
     if (!latestPoseMatrix || !latestHitResult || stableFrames < STABLE_FRAMES_REQUIRED) {
-      callbacks.onStatus?.('Mova o celular devagar até o círculo ficar verde; depois toque na mesa.')
+      emitStatus('Aponte para a mesa e mova o celular devagar; toque quando o círculo ficar verde.', true)
       return
     }
 
@@ -244,12 +271,11 @@ export async function startStableAR(
     reticle.visible = false
     markPlaced(true)
 
-    callbacks.onStatus?.(
-      `${product.shortName} fixado em ${product.realWidthCm} cm. Agora caminhe para os lados para observá-lo em 3D.`
+    emitStatus(
+      `${product.shortName} fixado em ${product.realWidthCm} cm. Agora caminhe para os lados.`,
+      true
     )
 
-    // Melhor opção: XRAnchor criado diretamente do hit-test da mesa.
-    // Se não houver suporte, o objeto permanece congelado na pose local.
     try {
       if (typeof latestHitResult.createAnchor === 'function') {
         worldAnchor = await latestHitResult.createAnchor()
@@ -269,10 +295,11 @@ export async function startStableAR(
   const reposition = () => {
     removePlacedObject()
     stableFrames = 0
-    lastHitPosition = null
+    hasLastRawPosition = false
     latestHitResult = null
     latestPoseMatrix = null
-    callbacks.onStatus?.(`Procure a mesa novamente. O círculo representa ${product.realWidthCm} cm reais.`)
+    reticleInitialized = false
+    emitStatus(`Procure a mesa novamente. O círculo representa ${product.realWidthCm} cm reais.`, true)
   }
 
   const onSelect = () => {
@@ -281,8 +308,9 @@ export async function startStableAR(
 
   session.addEventListener('select', onSelect)
 
-  callbacks.onStatus?.(
-    `Aponte para a mesa. Quando o círculo de ${product.realWidthCm} cm ficar verde, toque para fixar.`
+  emitStatus(
+    `Aponte para a mesa e mova o celular devagar. O círculo representa ${product.realWidthCm} cm.`,
+    true
   )
 
   const cleanup = () => {
@@ -300,11 +328,9 @@ export async function startStableAR(
 
   session.addEventListener('end', cleanup, { once: true })
 
-  renderer.setAnimationLoop((_time: number, frame?: any) => {
+  renderer.setAnimationLoop((time: number, frame?: any) => {
     if (!frame || disposed) return
 
-    // Depois de fixado, o hit-test deixa de controlar o produto.
-    // Se houver XRAnchor, usamos somente a pose desse anchor.
     if (placedObject) {
       if (worldAnchor?.anchorSpace) {
         const anchorPose = frame.getPose(worldAnchor.anchorSpace, referenceSpace)
@@ -317,52 +343,63 @@ export async function startStableAR(
       return
     }
 
-    const results = frame.getHitTestResults(hitTestSource)
+    // O renderer continua a 60/90 Hz, mas hit-test e UI não precisam disso.
+    if (time - lastHitSampleAt >= 32) {
+      lastHitSampleAt = time
 
-    if (!results.length) {
-      reticle.visible = false
-      latestHitResult = null
-      latestPoseMatrix = null
-      stableFrames = 0
-      lastHitPosition = null
-      callbacks.onStatus?.('Aponte para uma mesa com textura e mova o celular devagar.')
-      renderer.render(scene, camera)
-      return
+      const results = frame.getHitTestResults(hitTestSource)
+
+      if (results.length) {
+        const hit = results[0]
+        const pose = hit.getPose(referenceSpace)
+
+        if (pose) {
+          lastHitAt = time
+          latestHitResult = hit
+          latestPoseMatrix = new Float32Array(pose.transform.matrix)
+
+          targetMatrix.fromArray(pose.transform.matrix)
+          targetMatrix.decompose(targetPosition, targetQuaternion, targetScale)
+
+          if (!reticleInitialized) {
+            reticle.position.copy(targetPosition)
+            reticle.quaternion.copy(targetQuaternion)
+            reticleInitialized = true
+          } else {
+            // Suaviza a mira sem atrasar demais a colocação.
+            reticle.position.lerp(targetPosition, 0.42)
+            reticle.quaternion.slerp(targetQuaternion, 0.42)
+          }
+          reticle.visible = true
+
+          if (hasLastRawPosition) {
+            const delta = targetPosition.distanceTo(lastRawPosition)
+            stableFrames = delta <= MAX_STABLE_DELTA_METERS ? Math.min(stableFrames + 1, 12) : 1
+          } else {
+            stableFrames = 1
+            hasLastRawPosition = true
+          }
+          lastRawPosition.copy(targetPosition)
+
+          const ready = stableFrames >= STABLE_FRAMES_REQUIRED
+          ;(ring.material as any).color.setHex(ready ? 0x4de28a : 0xe5a066)
+
+          emitStatus(
+            ready
+              ? `Mesa encontrada. Toque para fixar o ${product.shortName}.`
+              : 'Mesa encontrada. Mantenha o celular por um instante…'
+          )
+        }
+      } else if (time - lastHitAt > HIT_GRACE_MS) {
+        reticle.visible = false
+        latestHitResult = null
+        latestPoseMatrix = null
+        stableFrames = 0
+        hasLastRawPosition = false
+        reticleInitialized = false
+        emitStatus('Procure uma área da mesa com bordas ou objetos próximos e mova o celular devagar.')
+      }
     }
-
-    const hit = results[0]
-    const pose = hit.getPose(referenceSpace)
-
-    if (!pose) {
-      renderer.render(scene, camera)
-      return
-    }
-
-    latestHitResult = hit
-    latestPoseMatrix = new Float32Array(pose.transform.matrix)
-    reticle.matrix.fromArray(pose.transform.matrix)
-    reticle.visible = true
-
-    const matrix = pose.transform.matrix
-    const hitPosition = new THREE.Vector3(matrix[12], matrix[13], matrix[14])
-
-    if (lastHitPosition) {
-      const delta = hitPosition.distanceTo(lastHitPosition)
-      stableFrames = delta <= MAX_STABLE_DELTA_METERS ? stableFrames + 1 : 0
-    } else {
-      stableFrames = 1
-    }
-
-    lastHitPosition = hitPosition
-
-    const ready = stableFrames >= STABLE_FRAMES_REQUIRED
-    ;(ring.material as any).color.setHex(ready ? 0x4de28a : 0xe5a066)
-
-    callbacks.onStatus?.(
-      ready
-        ? `Mesa estável. Toque para fixar o ${product.shortName} em ${product.realWidthCm} cm.`
-        : `Mesa encontrada. Estabilizando a referência de ${product.realWidthCm} cm…`
-    )
 
     renderer.render(scene, camera)
   })

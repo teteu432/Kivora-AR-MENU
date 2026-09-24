@@ -169,6 +169,9 @@ export default function ProductViewer({ product }: Props) {
       // Deixa o DOM overlay visível imediatamente; requestSession é chamado
       // dentro do mesmo gesto do usuário em startStableAR().
       overlay.classList.add('active')
+      // Evita renderizar o preview 3D por baixo da sessão WebXR.
+      // Em celulares medianos isso reduz bastante o uso simultâneo de GPU.
+      if (viewerRef.current) viewerRef.current.style.visibility = 'hidden'
       setGuideOpen(false)
       setXrActive(true)
       setXrPlaced(false)
@@ -183,6 +186,7 @@ export default function ProductViewer({ product }: Props) {
         onSessionEnd: () => {
           stableSessionRef.current = null
           overlay.classList.remove('active')
+          if (viewerRef.current) viewerRef.current.style.visibility = 'visible'
           setXrActive(false)
           setXrPlaced(false)
           setAnchorMode(null)
@@ -196,6 +200,7 @@ export default function ProductViewer({ product }: Props) {
         .catch((error) => {
           console.error('[Kivora AR] Falha no AR estável:', error)
           overlay.classList.remove('active')
+          if (viewerRef.current) viewerRef.current.style.visibility = 'visible'
           setXrActive(false)
           setLaunchError(
             'Não foi possível iniciar o AR estável. Se houver um modo AR nativo no aparelho, tente novamente pelo fallback.'
@@ -239,9 +244,8 @@ export default function ProductViewer({ product }: Props) {
           ar-placement="floor"
           ar-scale="fixed"
           camera-controls
-          auto-rotate
-          shadow-intensity="0.9"
-          shadow-softness="0.8"
+          shadow-intensity="0.55"
+          shadow-softness="0.7"
           environment-image="neutral"
           exposure="1.05"
           touch-action="pan-y"
@@ -311,11 +315,10 @@ export default function ProductViewer({ product }: Props) {
             </button>
 
             <div className="modal-icon">{product.emoji}</div>
-            <span className="preflight-kicker">AR ESTÁVEL • V4</span>
+            <span className="preflight-kicker">AR LEVE • V4.1</span>
             <h2>Fixe o prato na mesa antes de caminhar ao redor</h2>
             <p>
-              Agora o alimento não acompanha a câmera. Primeiro encontramos a mesa, depois você
-              toca para fixá-lo em uma coordenada do ambiente.
+              Esta versão reduz o processamento durante a câmera e aceita pequenas oscilações na detecção da mesa. Depois do toque, o alimento fica fixado no ambiente.
             </p>
 
             <div className="preflight-steps">
@@ -360,7 +363,7 @@ export default function ProductViewer({ product }: Props) {
             )}
 
             <small className="compatibility-note">
-              Prioridade: WebXR ancorado • fallback: Scene Viewer/Quick Look quando disponível
+              WebXR otimizado • detecção simplificada • fallback nativo quando disponível
             </small>
           </section>
         </div>
