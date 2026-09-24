@@ -41,9 +41,8 @@ export const products: Product3D[] = [
     // O modelo remoto é escalado no navegador, mas não está gravado fisicamente em 13 cm.
     // Por isso evitamos Scene Viewer neste item para não abrir com escala incorreta no Android.
     nativeScaleReady: false,
-    // Calibração obtida a partir do teste real em mesa: a versão anterior
-    // aparentava cerca de 60% do tamanho esperado.
-    scaleCalibration: 1.65,
+    // V4: a câmera usa metros reais diretamente; não aplicamos mais compensação visual.
+    scaleCalibration: 1,
   },
   {
     id: 'pizza-calabresa',

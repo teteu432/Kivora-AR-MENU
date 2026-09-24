@@ -946,3 +946,31 @@ button {
   font-weight: 850;
   cursor: pointer;
 }
+
+/* V4 — controles do AR ancorado */
+.xr-reposition-button {
+  position: absolute;
+  left: 18px;
+  bottom: max(24px, env(safe-area-inset-bottom));
+  min-height: 48px;
+  padding: 0 17px;
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 999px;
+  background: rgba(12,11,9,.78);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 850;
+  pointer-events: auto;
+  backdrop-filter: blur(12px);
+}
+
+.fallback-ar-button {
+  align-self: flex-start;
+  margin-top: 8px;
+  padding: 9px 13px;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 10px;
+  background: rgba(255,255,255,.04);
+  color: #d9d0c6;
+  cursor: pointer;
+}

@@ -54,7 +54,7 @@ function App() {
         </div>
 
         <div className="demo-badge">
-          DEMO AR • v3 Native
+          DEMO AR • v4 Stable Anchor
         </div>
       </header>
 
@@ -191,8 +191,8 @@ function App() {
             <span>✦</span>
 
             <p>
-              A experiência prioriza o AR nativo disponível no aparelho e mantém o 3D como fallback.
-              Modelos de produção devem ser exportados em escala física real para preservar as medidas.
+              No Android compatível, o produto é fixado em uma pose do ambiente e deixa de seguir a câmera.
+              A escala do WebXR é calculada diretamente em metros; 13 cm permanecem 13 cm ao se afastar.
             </p>
           </div>
         </article>
@@ -204,7 +204,7 @@ function App() {
         </strong>
 
         <span>
-          Protótipo demonstrativo • AR nativo + fallback 3D
+          Protótipo demonstrativo • AR ancorado + fallback 3D
         </span>
       </footer>
     </main>
