@@ -10,6 +10,11 @@ export type Product3D = {
   realHeightCm: number
   emoji: string
   note: string
+  /**
+   * true somente quando o próprio GLB já está exportado em escala física real (metros).
+   * Isso permite usar Scene Viewer sem perder a medida do produto.
+   */
+  nativeScaleReady: boolean
 }
 
 export const products: Product3D[] = [
@@ -27,6 +32,9 @@ export const products: Product3D[] = [
     realHeightCm: 8,
     emoji: '🍔',
     note: 'Tamanho individual',
+    // O modelo remoto é escalado no navegador, mas não está gravado fisicamente em 13 cm.
+    // Por isso evitamos Scene Viewer neste item para não abrir com escala incorreta no Android.
+    nativeScaleReady: false,
   },
   {
     id: 'pizza-calabresa',
@@ -36,11 +44,12 @@ export const products: Product3D[] = [
     description:
       'Massa assada, molho de tomate, mussarela, calabresa, cebola roxa e toque de orégano.',
     price: 49.9,
-    modelUrl:
-      '/models/pizza-calabresa.glb',
+    modelUrl: '/models/pizza-calabresa.glb',
     realWidthCm: 32,
     realHeightCm: 3.5,
     emoji: '🍕',
     note: 'Pizza média • 6 fatias',
+    // Conferido: o GLB mede aproximadamente 0,32 m x 0,03475 m x 0,32 m.
+    nativeScaleReady: true,
   },
 ]

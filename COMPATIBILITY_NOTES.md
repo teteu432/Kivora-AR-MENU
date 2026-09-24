@@ -1,30 +1,34 @@
-# Kivora AR Menu — modo compatível
+# Kivora AR Menu V3 — compatibilidade
 
-Esta versão muda a estratégia principal de AR para **marker-based AR** com AR.js.
+## Estratégia
 
-## Por que
+Esta versão abandona o marcador físico como fluxo principal e usa o mesmo tipo de experiência que produtos web de AR modernos oferecem: 3D no navegador + AR nativo quando o aparelho disponibiliza um modo compatível.
 
-A versão WebXR dependia de `immersive-ar`, ARCore e, para oclusão, Depth Sensing. Muitos aparelhos não oferecem essas APIs ou apresentam desempenho inconsistente.
+Ordem por produto:
 
-## Como funciona agora
+- GLB já calibrado fisicamente: `scene-viewer webxr quick-look`
+- GLB ainda não calibrado no próprio arquivo: `webxr quick-look`
 
-1. O usuário imprime o marcador Hiro com 8 cm.
-2. O cardápio abre `/ar-marker.html` apenas quando o usuário entra no modo AR.
-3. AR.js usa a câmera e o marcador para estimar posição e perspectiva.
-4. `size="0.08"` informa ao rastreador que o marcador mede 8 cm.
-5. Depois que o GLB carrega, o código mede o bounding box do modelo e calcula a escala necessária para que a largura cadastrada em `products.ts` seja representada em metros.
-6. O alimento aparece ao lado do marcador para que o marcador continue visível mesmo quando o usuário aproxima a mão do produto.
+A razão é técnica: no Android, o Scene Viewer recebe a URL do GLB original. Uma escala aplicada apenas pelo React/model-viewer não deve ser tratada como garantia de escala física no Scene Viewer. Por isso cada modelo de produção deve ser exportado com unidades reais em metros.
 
-## Performance
+## Pizza
 
-- Sem WebXR/ARCore na rota principal.
-- Sem Depth Sensing.
-- Renderizador sem antialiasing.
-- Câmera/rastreamento em 480x640.
-- Detecção limitada a 30 Hz.
-- Sem sombras em tempo real no modo AR.
-- AR.js/A-Frame só carregam na página de câmera.
+`public/models/pizza-calabresa.glb` foi conferido localmente e possui dimensões aproximadas de:
 
-## Limitação importante
+- 0,32 m de largura
+- 0,03475 m de altura
+- 0,32 m de profundidade
 
-Oclusão real da mão na frente/atrás do modelo exige informação de profundidade ou uma etapa de visão computacional adicional. Para manter compatibilidade e fluidez, esta versão não ativa esse recurso por padrão.
+Ela é o melhor item para testar AR físico nesta versão.
+
+## Hambúrguer
+
+O hambúrguer atual vem de uma URL externa e é redimensionado em tempo de execução para 13 cm. Isso funciona no preview e no WebXR, porém ainda não é uma garantia para o Scene Viewer. Antes de produção, salve o modelo localmente e exporte-o já com 0,13 m de largura.
+
+## Requisitos práticos
+
+- servir o site em HTTPS para WebXR;
+- testar no Chrome/Safari normal, não no navegador interno do Instagram;
+- mesa bem iluminada e com alguma textura;
+- mover o aparelho lentamente antes de posicionar;
+- em aparelho sem AR, manter sempre o visualizador 3D como fallback.

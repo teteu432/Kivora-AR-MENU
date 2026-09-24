@@ -6,7 +6,10 @@ type Props = {
   product: Product3D
 }
 
-const MARKER_SIZE_CM = 8
+function isEmbeddedBrowser() {
+  const ua = navigator.userAgent || ''
+  return /Instagram|FBAN|FBAV|Line\/|wv\)/i.test(ua)
+}
 
 export default function ProductViewer({ product }: Props) {
   const viewerRef = useRef<ModelViewerElement | null>(null)
@@ -15,6 +18,8 @@ export default function ProductViewer({ product }: Props) {
 
   const [ready, setReady] = useState(false)
   const [guideOpen, setGuideOpen] = useState(false)
+  const [arSupported, setArSupported] = useState<boolean | null>(null)
+  const [launchError, setLaunchError] = useState<string | null>(null)
   const [status, setStatus] = useState('Preparando visualização 3D…')
 
   const applyScale = useCallback(() => {
@@ -30,11 +35,19 @@ export default function ProductViewer({ product }: Props) {
     viewer.updateFraming()
   }, [product.realWidthCm])
 
+  const refreshARSupport = useCallback(() => {
+    const viewer = viewerRef.current
+    if (!viewer) return
+    setArSupported(Boolean(viewer.canActivateAR))
+  }, [])
+
   useEffect(() => {
     const viewer = viewerRef.current
     if (!viewer) return
 
     setReady(false)
+    setArSupported(null)
+    setLaunchError(null)
     setStatus('Preparando visualização 3D…')
 
     if (sourceKeyRef.current !== product.modelUrl) {
@@ -57,6 +70,11 @@ export default function ProductViewer({ product }: Props) {
         applyScale()
         setReady(true)
         setStatus(`${product.shortName} pronto para visualizar.`)
+
+        // O model-viewer decide o modo AR de forma assíncrona.
+        // Rechecamos após pequenos intervalos para capturar Scene Viewer/WebXR/Quick Look.
+        window.setTimeout(refreshARSupport, 120)
+        window.setTimeout(refreshARSupport, 700)
       } catch (error) {
         console.error('[Kivora AR] Falha ao preparar modelo:', error)
         setStatus('Não foi possível preparar este modelo 3D.')
@@ -65,11 +83,20 @@ export default function ProductViewer({ product }: Props) {
 
     const handleError = () => {
       setReady(false)
+      setArSupported(false)
       setStatus('Não foi possível carregar este modelo 3D.')
+    }
+
+    const handleARStatus = (event: Event) => {
+      const detail = (event as CustomEvent<{ status?: string }>).detail
+      if (detail?.status === 'failed') {
+        setLaunchError('O modo AR não abriu neste aparelho. Você ainda pode visualizar o prato em 3D.')
+      }
     }
 
     viewer.addEventListener('load', prepare)
     viewer.addEventListener('error', handleError)
+    viewer.addEventListener('ar-status', handleARStatus)
     viewer.setAttribute('src', product.modelUrl)
 
     if (viewer.loaded) {
@@ -79,25 +106,34 @@ export default function ProductViewer({ product }: Props) {
     return () => {
       viewer.removeEventListener('load', prepare)
       viewer.removeEventListener('error', handleError)
+      viewer.removeEventListener('ar-status', handleARStatus)
     }
-  }, [product, applyScale])
+  }, [product, applyScale, refreshARSupport])
 
-  const openCompatibleAR = () => {
-    const params = new URLSearchParams({
-      model: product.modelUrl,
-      widthCm: String(product.realWidthCm),
-      heightCm: String(product.realHeightCm),
-      name: product.name,
-      emoji: product.emoji,
-      markerCm: String(MARKER_SIZE_CM),
+  const openGuide = () => {
+    setLaunchError(null)
+    refreshARSupport()
+    setGuideOpen(true)
+  }
+
+  const launchAR = () => {
+    const viewer = viewerRef.current
+    if (!viewer) return
+
+    setLaunchError(null)
+
+    // Importante: activateAR() é chamado diretamente no clique do usuário.
+    // Scene Viewer e Quick Look podem bloquear ativações disparadas depois de awaits/timeouts.
+    const activation = viewer.activateAR()
+    setGuideOpen(false)
+
+    void activation.catch((error) => {
+      console.error('[Kivora AR] Não foi possível abrir AR:', error)
+      setLaunchError('O modo AR não abriu neste aparelho. Continue usando a visualização 3D.')
     })
-
-    window.location.href = `/ar-marker.html?${params.toString()}`
   }
 
-  const openMarker = () => {
-    window.open('/marker-print.html', '_blank', 'noopener,noreferrer')
-  }
+  const embedded = typeof navigator !== 'undefined' && isEmbeddedBrowser()
 
   return (
     <>
@@ -108,9 +144,15 @@ export default function ProductViewer({ product }: Props) {
           }}
           src={product.modelUrl}
           alt={`${product.name} em 3D`}
+          ar
+          ar-modes={product.nativeScaleReady
+            ? 'scene-viewer webxr quick-look'
+            : 'webxr quick-look'}
+          ar-placement="floor"
+          ar-scale="fixed"
           camera-controls
           auto-rotate
-          shadow-intensity="1"
+          shadow-intensity="0.9"
           shadow-softness="0.8"
           environment-image="neutral"
           exposure="1.05"
@@ -136,7 +178,7 @@ export default function ProductViewer({ product }: Props) {
           <button
             type="button"
             className="ar-button"
-            onClick={() => setGuideOpen(true)}
+            onClick={openGuide}
             disabled={!ready}
           >
             <span>⌖</span>
@@ -145,12 +187,22 @@ export default function ProductViewer({ product }: Props) {
         </div>
       </div>
 
-      <p className="status-line">{status}</p>
+      <p className="status-line">
+        {status}
+        {ready && arSupported === false && ' • AR indisponível neste aparelho; modo 3D continua disponível.'}
+      </p>
+
+      {launchError && (
+        <div className="ar-fallback-message" role="status">
+          <strong>AR indisponível</strong>
+          <span>{launchError}</span>
+        </div>
+      )}
 
       {guideOpen && (
         <div className="modal-backdrop" onClick={() => setGuideOpen(false)}>
           <section
-            className="ar-modal"
+            className="ar-modal ar-preflight-modal"
             role="dialog"
             aria-modal="true"
             onClick={(event) => event.stopPropagation()}
@@ -165,46 +217,57 @@ export default function ProductViewer({ product }: Props) {
             </button>
 
             <div className="modal-icon">{product.emoji}</div>
-            <h2>AR compatível e com escala fixa</h2>
-
+            <span className="preflight-kicker">ANTES DE ABRIR A CÂMERA</span>
+            <h2>Ajude o celular a encontrar a mesa</h2>
             <p>
-              Esta versão não depende de ARCore ou WebXR. Coloque o marcador de
-              <strong> {MARKER_SIZE_CM} cm </strong>
-              sobre a mesa e mantenha-o visível. Ele funciona como uma régua física para
-              calcular o tamanho e a posição do alimento.
+              A experiência usa o recurso AR disponível no próprio aparelho. Não é necessário
+              imprimir marcador nem instalar um aplicativo.
             </p>
 
-            <div className="ar-feature-list">
+            <div className="preflight-steps">
               <div>
-                <span>01</span>
-                <p><strong>Escala consistente</strong> — o marcador define uma medida conhecida no mundo real.</p>
+                <span>1</span>
+                <p><strong>Aponte para a mesa</strong><small>Mantenha o celular a cerca de 40–60 cm da superfície.</small></p>
               </div>
               <div>
-                <span>02</span>
-                <p><strong>Mais aparelhos</strong> — usa câmera + WebGL, sem exigir suporte a ARCore.</p>
+                <span>2</span>
+                <p><strong>Mova devagar para os lados</strong><small>Isso ajuda o aparelho a reconhecer o plano onde o prato será colocado.</small></p>
               </div>
               <div>
-                <span>03</span>
-                <p><strong>Mais leve</strong> — rastreamento por marcador substitui detecção de superfície e profundidade.</p>
+                <span>3</span>
+                <p><strong>Prefira uma superfície com textura</strong><small>Vidro e mesas totalmente brancas podem dificultar o rastreamento.</small></p>
               </div>
             </div>
 
             <div className="modal-measure">
-              <span>Produto / marcador</span>
-              <strong>{product.realWidthCm} cm / {MARKER_SIZE_CM} cm</strong>
+              <span>Tamanho cadastrado</span>
+              <strong>{product.realWidthCm} cm</strong>
             </div>
 
-            <div className="modal-warning">
-              A oclusão real da mão (passar na frente e atrás do alimento) depende de sensor/profundidade e não é confiável em todos os celulares. Nesta versão priorizamos estabilidade, tamanho real e compatibilidade.
-            </div>
+            {embedded && (
+              <div className="modal-warning">
+                Você parece estar no navegador interno de outro aplicativo. Para a câmera AR,
+                abra este link diretamente no Chrome ou Safari.
+              </div>
+            )}
 
-            <button type="button" className="open-camera-button" onClick={openCompatibleAR}>
-              📷 Abrir câmera — modo compatível
-            </button>
+            {arSupported === false ? (
+              <div className="ar-not-supported-box">
+                <strong>Este aparelho não ofereceu um modo AR compatível.</strong>
+                <span>Você pode continuar girando e aproximando o prato em 3D normalmente.</span>
+                <button type="button" onClick={() => setGuideOpen(false)}>
+                  Continuar em 3D
+                </button>
+              </div>
+            ) : (
+              <button type="button" className="open-camera-button" onClick={launchAR}>
+                📷 Abrir câmera
+              </button>
+            )}
 
-            <button type="button" className="marker-button" onClick={openMarker}>
-              ⬚ Abrir marcador de referência
-            </button>
+            <small className="compatibility-note">
+              Android: Scene Viewer/WebXR quando disponível • iPhone: AR Quick Look • fallback: 3D no navegador
+            </small>
           </section>
         </div>
       )}

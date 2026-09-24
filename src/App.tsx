@@ -54,7 +54,7 @@ function App() {
         </div>
 
         <div className="demo-badge">
-          DEMO AR • v1.0 Lite
+          DEMO AR • v3 Native
         </div>
       </header>
 
@@ -191,8 +191,8 @@ function App() {
             <span>✦</span>
 
             <p>
-              A visualização usa a medida cadastrada do produto e um marcador físico
-              para manter a escala consistente durante a experiência AR.
+              A experiência prioriza o AR nativo disponível no aparelho e mantém o 3D como fallback.
+              Modelos de produção devem ser exportados em escala física real para preservar as medidas.
             </p>
           </div>
         </article>
@@ -204,7 +204,7 @@ function App() {
         </strong>
 
         <span>
-          Protótipo demonstrativo • AR compatível por marcador
+          Protótipo demonstrativo • AR nativo + fallback 3D
         </span>
       </footer>
     </main>

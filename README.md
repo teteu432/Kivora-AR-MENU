@@ -1,50 +1,29 @@
-# Kivora AR Menu v0.9.0 — protótipo apresentável
+# Kivora AR Menu — V3 Native
 
-Versão voltada para apresentação comercial.
+Protótipo de cardápio 3D/AR com fluxo simplificado para celular.
 
-## Produtos incluídos
-
-### X-Burguer Especial
-- largura física: 13 cm
-- altura esperada: 8 cm
-- modelo de demonstração externo:
-  `https://cdn.jsdelivr.net/gh/mindset-code/burger-house-3d@c2bddc597efe4870326c843a6e056727752fc261/public/hamburger__food_big-hamburger.glb`
-
-### Pizza de Calabresa
-- diâmetro físico: 32 cm
-- altura esperada: 3,5 cm
-- modelo criado especificamente para este protótipo:
-  `/models/pizza-calabresa.glb`
-
-## Experiência
-
-- seletor de produtos;
-- visualização 3D;
-- preço e descrição;
-- medidas reais;
-- AR em WebXR;
-- sem painel técnico visível para o cliente;
-- modal curto antes de abrir a câmera;
-- escala fixa durante o AR.
-
-## Build
-
-Extraia em uma pasta nova:
+## Rodar
 
 ```bash
 npm install
-npm run typecheck
-npm run build
+npm run dev
 ```
 
-A versão correta mostra:
+Para testar AR de verdade, publique em HTTPS (por exemplo Vercel) e abra pelo Chrome no Android ou Safari no iPhone.
 
-`DEMO AR • v0.9.0`
+## Fluxo
 
-## Observação de licença
+1. O cliente escolhe o prato.
+2. Visualiza e gira o modelo em 3D.
+3. Toca em **Ver na minha mesa**.
+4. Recebe instruções rápidas para encontrar a superfície.
+5. O projeto chama o modo AR que o aparelho oferece.
+6. Se AR não estiver disponível, o cliente continua no 3D sem erro ou tela travada.
 
-O modelo da pizza foi criado para este protótipo.
+## Escala física
 
-O modelo do hambúrguer continua sendo um asset de demonstração hospedado em
-repositório público. Antes de uso comercial, substitua-o por um asset com
-licença individual documentada ou por um modelo do próprio restaurante.
+O ideal de produção é que cada GLB seja exportado em unidades reais (1 unidade = 1 metro). `ar-scale="fixed"` impede redimensionamento pelo usuário, mas não substitui um arquivo 3D fisicamente calibrado.
+
+A pizza incluída está em aproximadamente 32 cm e é o item recomendado para validar o fluxo nativo.
+
+Veja também `COMPATIBILITY_NOTES.md`.
