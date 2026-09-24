@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <meta name="theme-color" content="#0b0a08" />
+  <title>Kivora AR — Modo compatível</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #000; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    body { touch-action: none; }
+    .hud { position: fixed; inset: 0; z-index: 9999; pointer-events: none; color: #fff; }
+    .top { position: absolute; top: max(14px, env(safe-area-inset-top)); left: 14px; right: 14px; display: flex; gap: 10px; align-items: flex-start; justify-content: space-between; }
+    .status { max-width: min(76vw, 420px); padding: 11px 13px; border: 1px solid rgba(255,255,255,.12); border-radius: 14px; background: rgba(9,8,7,.74); backdrop-filter: blur(10px); box-shadow: 0 10px 35px rgba(0,0,0,.24); }
+    .status strong { display: block; font-size: 12px; }
+    .status span { display: block; margin-top: 3px; color: rgba(255,255,255,.65); font-size: 10px; line-height: 1.35; }
+    .close { pointer-events: auto; width: 44px; height: 44px; border: 1px solid rgba(255,255,255,.12); border-radius: 50%; background: rgba(9,8,7,.78); color: #fff; font-size: 23px; cursor: pointer; }
+    .measure { position: absolute; left: 50%; bottom: max(18px, env(safe-area-inset-bottom)); transform: translateX(-50%); width: min(92vw, 520px); padding: 12px 14px; border: 1px solid rgba(255,255,255,.12); border-radius: 16px; background: rgba(9,8,7,.76); backdrop-filter: blur(10px); text-align: center; }
+    .measure b { color: #efac6f; font-size: 13px; }
+    .measure small { display: block; margin-top: 3px; color: rgba(255,255,255,.6); font-size: 9px; line-height: 1.35; }
+    .loading { position: fixed; inset: 0; z-index: 10000; display: grid; place-items: center; padding: 24px; background: #0b0a08; color: #fff; text-align: center; transition: opacity .25s ease; }
+    .loading.hidden { opacity: 0; pointer-events: none; }
+    .loading-box { width: min(88vw, 420px); }
+    .spinner { width: 34px; height: 34px; margin: 0 auto 16px; border: 3px solid rgba(255,255,255,.13); border-top-color: #e7a264; border-radius: 50%; animation: spin .8s linear infinite; }
+    .loading h1 { margin: 0; font-size: 20px; }
+    .loading p { margin: 8px 0 0; color: #8e857b; font-size: 12px; line-height: 1.5; }
+    .error { color: #ffb3a7 !important; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .a-enter-vr, .a-orientation-modal { display: none !important; }
+  </style>
+  <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+  <script src="https://raw.githack.com/AR-js-org/AR.js/3.4.8/aframe/build/aframe-ar.js"></script>
+</head>
+<body>
+  <div id="loading" class="loading">
+    <div class="loading-box">
+      <div class="spinner"></div>
+      <h1>Abrindo câmera</h1>
+      <p>Autorize o acesso e aponte para o marcador Hiro de 8 cm.</p>
+    </div>
+  </div>
+
+  <div class="hud">
+    <div class="top">
+      <div class="status">
+        <strong id="status-title">Procurando referência…</strong>
+        <span id="status-copy">Mantenha o marcador inteiro visível e mova o celular devagar.</span>
+      </div>
+      <button class="close" id="close" type="button" aria-label="Voltar">×</button>
+    </div>
+    <div class="measure">
+      <b id="measure-title">Escala física</b>
+      <small id="measure-copy">O marcador calibra o tamanho do produto sem ARCore/WebXR.</small>
+    </div>
+  </div>
+
+  <a-scene
+    id="scene"
+    embedded
+    vr-mode-ui="enabled: false"
+    device-orientation-permission-ui="enabled: false"
+    renderer="antialias: false; alpha: true; precision: mediump; colorManagement: true; physicallyCorrectLights: false;"
+    arjs="sourceType: webcam; debugUIEnabled: false; trackingMethod: best; detectionMode: mono_and_matrix; matrixCodeType: 3x3; maxDetectionRate: 30; canvasWidth: 480; canvasHeight: 640; sourceWidth: 480; sourceHeight: 640; displayWidth: 480; displayHeight: 640;"
+  >
+    <a-entity light="type: ambient; intensity: 1.7; color: #ffffff"></a-entity>
+    <a-entity light="type: directional; intensity: 1.05; color: #ffffff" position="1 2 1"></a-entity>
+
+    <a-marker
+      id="marker"
+      preset="hiro"
+      size="0.08"
+      emitevents="true"
+      smooth="true"
+      smooth-count="3"
+      smooth-tolerance="0.015"
+      smooth-threshold="2"
+    >
+      <a-entity id="dish-anchor">
+        <a-circle
+          id="footprint"
+          rotation="-90 0 0"
+          position="0 0.001 0"
+          material="color: #e7a264; transparent: true; opacity: 0.10; side: double; depthWrite: false"
+        ></a-circle>
+        <a-ring
+          id="footprint-ring"
+          rotation="-90 0 0"
+          position="0 0.002 0"
+          material="color: #e7a264; transparent: true; opacity: 0.90; side: double; depthWrite: false"
+        ></a-ring>
+        <a-entity id="product"></a-entity>
+      </a-entity>
+    </a-marker>
+
+    <a-entity camera></a-entity>
+  </a-scene>
+
+  <script>
+    (() => {
+      const params = new URLSearchParams(location.search)
+      const modelUrl = params.get('model') || ''
+      const widthCm = Math.max(1, Number(params.get('widthCm')) || 13)
+      const markerCm = Math.max(4, Number(params.get('markerCm')) || 8)
+      const productName = params.get('name') || 'Produto'
+
+      const targetWidthMeters = widthCm / 100
+      const markerMeters = markerCm / 100
+      const offsetMeters = Math.max(0.13, (targetWidthMeters / 2) + (markerMeters / 2) + 0.025)
+      const radius = targetWidthMeters / 2
+      const ringThickness = Math.min(0.004, Math.max(0.002, radius * 0.035))
+
+      const statusTitle = document.getElementById('status-title')
+      const statusCopy = document.getElementById('status-copy')
+      const measureTitle = document.getElementById('measure-title')
+      const measureCopy = document.getElementById('measure-copy')
+      const loading = document.getElementById('loading')
+      const marker = document.getElementById('marker')
+      const scene = document.getElementById('scene')
+      const product = document.getElementById('product')
+      const anchor = document.getElementById('dish-anchor')
+      const footprint = document.getElementById('footprint')
+      const ring = document.getElementById('footprint-ring')
+
+      measureTitle.textContent = `${productName} • ${widthCm} cm`
+      measureCopy.textContent = `Marcador: ${markerCm} cm. Mantenha o cartão ao lado do produto para o rastreamento continuar visível.`
+      marker.setAttribute('size', String(markerMeters))
+      anchor.setAttribute('position', `${offsetMeters} 0 0`)
+      footprint.setAttribute('radius', String(radius))
+      ring.setAttribute('radius-inner', String(Math.max(0.001, radius - ringThickness)))
+      ring.setAttribute('radius-outer', String(radius))
+
+      function setStatus(title, copy) {
+        statusTitle.textContent = title
+        statusCopy.textContent = copy
+      }
+
+      function computeLocalBounds(root) {
+        const THREE = window.THREE
+        const box = new THREE.Box3()
+        const temp = new THREE.Box3()
+        const inverseRoot = new THREE.Matrix4()
+
+        root.updateMatrixWorld(true)
+        inverseRoot.copy(root.matrixWorld).invert()
+
+        root.traverse((node) => {
+          if (!node.isMesh || !node.geometry) return
+          if (!node.geometry.boundingBox) node.geometry.computeBoundingBox()
+          if (!node.geometry.boundingBox) return
+
+          temp.copy(node.geometry.boundingBox)
+          const localMatrix = new THREE.Matrix4().multiplyMatrices(inverseRoot, node.matrixWorld)
+          temp.applyMatrix4(localMatrix)
+          box.union(temp)
+
+          node.castShadow = false
+          node.receiveShadow = false
+          node.frustumCulled = true
+        })
+
+        return box
+      }
+
+      AFRAME.registerComponent('kivora-physical-size', {
+        schema: { width: { type: 'number', default: 0.13 } },
+        init() {
+          this.el.addEventListener('model-loaded', () => {
+            try {
+              const mesh = this.el.getObject3D('mesh')
+              if (!mesh) throw new Error('Modelo sem malha 3D.')
+
+              const bounds = computeLocalBounds(mesh)
+              const size = new THREE.Vector3()
+              const center = new THREE.Vector3()
+              bounds.getSize(size)
+              bounds.getCenter(center)
+
+              const horizontal = Math.max(size.x, size.z)
+              if (!Number.isFinite(horizontal) || horizontal <= 0) {
+                throw new Error('Dimensão horizontal inválida.')
+              }
+
+              const scale = this.data.width / horizontal
+              mesh.scale.setScalar(scale)
+              mesh.position.set(
+                -center.x * scale,
+                -bounds.min.y * scale,
+                -center.z * scale
+              )
+              mesh.updateMatrixWorld(true)
+
+              setStatus('Produto pronto', 'Aponte a câmera para o marcador de referência.')
+              loading.classList.add('hidden')
+            } catch (error) {
+              console.error('[Kivora AR] Erro ao calibrar modelo:', error)
+              setStatus('Erro no modelo 3D', 'Não foi possível calcular o tamanho físico deste produto.')
+              statusCopy.classList.add('error')
+              loading.classList.add('hidden')
+            }
+          }, { once: true })
+        }
+      })
+
+      if (!modelUrl) {
+        setStatus('Modelo não informado', 'Volte ao cardápio e escolha um produto novamente.')
+        loading.classList.add('hidden')
+      } else {
+        product.setAttribute('kivora-physical-size', `width: ${targetWidthMeters}`)
+        product.setAttribute('gltf-model', `url(${modelUrl})`)
+      }
+
+      marker.addEventListener('markerFound', () => {
+        setStatus('Referência encontrada', `${productName} está ancorado em ${widthCm} cm. Mantenha o marcador visível.`)
+      })
+
+      marker.addEventListener('markerLost', () => {
+        setStatus('Procurando referência…', 'Aponte novamente para o marcador. Deixe-o ao lado do alimento virtual.')
+      })
+
+      scene.addEventListener('camera-init', () => {
+        setStatus('Câmera pronta', 'Agora aponte para o marcador de 8 cm sobre a mesa.')
+      })
+
+      scene.addEventListener('camera-error', (event) => {
+        console.error('[Kivora AR] Erro de câmera:', event)
+        setStatus('Não foi possível abrir a câmera', 'Confira a permissão da câmera e se o site está usando HTTPS.')
+        statusCopy.classList.add('error')
+        loading.classList.add('hidden')
+      })
+
+      document.getElementById('close').addEventListener('click', () => {
+        if (history.length > 1) history.back()
+        else location.href = '/'
+      })
+
+      window.setTimeout(() => {
+        if (!loading.classList.contains('hidden')) {
+          loading.classList.add('hidden')
+        }
+      }, 8000)
+    })()
+  </script>
+</body>
+</html>

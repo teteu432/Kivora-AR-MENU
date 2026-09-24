@@ -54,7 +54,7 @@ function App() {
         </div>
 
         <div className="demo-badge">
-          DEMO AR • v0.9.0
+          DEMO AR • v1.0 Lite
         </div>
       </header>
 
@@ -191,8 +191,8 @@ function App() {
             <span>✦</span>
 
             <p>
-              A visualização usa a medida cadastrada do produto e mantém a
-              escala bloqueada durante a experiência AR.
+              A visualização usa a medida cadastrada do produto e um marcador físico
+              para manter a escala consistente durante a experiência AR.
             </p>
           </div>
         </article>
@@ -204,7 +204,7 @@ function App() {
         </strong>
 
         <span>
-          Protótipo demonstrativo • WebXR
+          Protótipo demonstrativo • AR compatível por marcador
         </span>
       </footer>
     </main>

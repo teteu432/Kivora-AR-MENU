@@ -773,3 +773,59 @@ button {
   line-height: 1.45;
   text-align: center;
 }
+
+.ar-feature-list {
+  margin-top: 18px;
+  display: grid;
+  gap: 9px;
+}
+
+.ar-feature-list > div {
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  gap: 10px;
+  align-items: start;
+  padding: 11px;
+  border: 1px solid rgba(255,255,255,.055);
+  border-radius: 12px;
+  background: rgba(255,255,255,.018);
+}
+
+.ar-feature-list > div > span {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  background: rgba(221,149,84,.1);
+  color: #dd9554;
+  font-size: 9px;
+  font-weight: 900;
+}
+
+.ar-feature-list p {
+  margin: 1px 0 0;
+  font-size: 10px;
+}
+
+.modal-warning {
+  margin-top: 12px;
+  padding: 11px 12px;
+  border-radius: 11px;
+  background: rgba(255, 193, 92, .055);
+  color: #9d8d7c;
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.marker-button {
+  width: 100%;
+  min-height: 47px;
+  margin-top: 9px;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 13px;
+  background: rgba(255,255,255,.035);
+  color: #d7cec4;
+  font-weight: 800;
+  cursor: pointer;
+}
