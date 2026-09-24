@@ -27,3 +27,11 @@ O ideal de produção é que cada GLB seja exportado em unidades reais (1 unidad
 A pizza incluída está em aproximadamente 32 cm e é o item recomendado para validar o fluxo nativo.
 
 Veja também `COMPATIBILITY_NOTES.md`.
+
+
+## V3.1 — correção de escala do hambúrguer
+
+O primeiro teste em aparelho real mostrou que o GLB remoto do hambúrguer aparecia visualmente menor do que a referência de 13 cm.
+Foi adicionada uma calibração por produto (`scaleCalibration`). O X-Burguer usa 1.65 enquanto a pizza, cujo GLB já está em escala física, permanece em 1.0.
+
+Essa calibração afeta a visualização WebXR sem alterar a medida nominal mostrada no cardápio. A solução definitiva para produção é substituir o hambúrguer remoto por um GLB local exportado diretamente em metros.

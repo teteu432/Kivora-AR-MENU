@@ -29,11 +29,11 @@ export default function ProductViewer({ product }: Props) {
     if (!viewer || !originalWidth) return
 
     const targetMeters = product.realWidthCm / 100
-    const factor = targetMeters / originalWidth
+    const factor = (targetMeters / originalWidth) * product.scaleCalibration
 
     viewer.setAttribute('scale', `${factor} ${factor} ${factor}`)
     viewer.updateFraming()
-  }, [product.realWidthCm])
+  }, [product.realWidthCm, product.scaleCalibration])
 
   const refreshARSupport = useCallback(() => {
     const viewer = viewerRef.current

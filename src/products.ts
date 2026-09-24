@@ -15,6 +15,12 @@ export type Product3D = {
    * Isso permite usar Scene Viewer sem perder a medida do produto.
    */
   nativeScaleReady: boolean
+  /**
+   * Correção visual aplicada ao modelo no navegador/WebXR.
+   * Mantém a medida exibida ao usuário (ex.: 13 cm), mas compensa GLBs
+   * cuja unidade/origem não representa corretamente o tamanho físico.
+   */
+  scaleCalibration: number
 }
 
 export const products: Product3D[] = [
@@ -35,6 +41,9 @@ export const products: Product3D[] = [
     // O modelo remoto é escalado no navegador, mas não está gravado fisicamente em 13 cm.
     // Por isso evitamos Scene Viewer neste item para não abrir com escala incorreta no Android.
     nativeScaleReady: false,
+    // Calibração obtida a partir do teste real em mesa: a versão anterior
+    // aparentava cerca de 60% do tamanho esperado.
+    scaleCalibration: 1.65,
   },
   {
     id: 'pizza-calabresa',
@@ -51,5 +60,7 @@ export const products: Product3D[] = [
     note: 'Pizza média • 6 fatias',
     // Conferido: o GLB mede aproximadamente 0,32 m x 0,03475 m x 0,32 m.
     nativeScaleReady: true,
+    // O GLB da pizza já está em aproximadamente 32 cm no próprio arquivo.
+    scaleCalibration: 1,
   },
 ]
